@@ -19,25 +19,25 @@ def helpMessage() {
 
     Usage:
 
-    The typical command for running the pipeline is as follows:
+    An example command for running the pipeline is as follows:
 
     nextflow run FredHutch/CLOMP \\
         --INPUT_FOLDER reads/ \\
-        --SNAP_INDEXES snap_idx/nt.00.0/,snap_idx/nt.00.1/ \\
+        --PAIRED_END \\
         --HOST_FILTER_FIRST \\
         --OUTDIR output/
         
 
     Required Arguments:
       --INPUT_FOLDER    Folder containing input files (FASTQ format)
-      --INPUT_SUFFIX    Suffix of input files (default: .fastq.gz)
-      --PAIRED_END      If specified, look for paired-end files with { _R1_ / _R2_ }
       --ENTREZ_EMAIL
                 Email adress requried for interfacing with NCBI servers. Please provide your own email address.
       --OUTDIR
                 The output directory where the results will be saved
 
     Optional Arguments:
+      --PAIRED_END      If specified, look for paired-end files with { _R1_ / _R2_ }
+      --INPUT_SUFFIX    Suffix of input files (default: .fastq.gz)
       --SNAP_INDEXES
                 Comma-delimited list of SNAP indexed references
       --SNAP_OPTIONS
