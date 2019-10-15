@@ -353,6 +353,7 @@ import operator
 from collections import Counter
 from ete3 import NCBITaxa
 import timeit
+from collections import defaultdict
 ncbi = NCBITaxa()
 
 
@@ -613,7 +614,7 @@ for sam_file in glob.glob('*.sam'):
 
 per_base_runtime = str(timeit.default_timer() - base_start_time)
 print("${base}" + ' took ' + per_base_runtime + ' in total to read')
-final_assignment_counts = {}
+final_assignment_counts = defaultdict(int)
 
 #Now we've read all the reads for all the SAM files for one sample.  We are still within the sample For loop here.
 #We have all the reads with all the taxids and edit distances that have been assigned.
