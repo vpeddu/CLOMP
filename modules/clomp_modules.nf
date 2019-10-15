@@ -333,8 +333,8 @@ process CLOMP_summary {
       file BLAST_CHECK_DB
       file "kraken_db/"
     output:
-      file "*"  // Output all files that aren't part of the input
-      file "${log_file}"
+      file "*final_report.tsv"  // Final report TSV
+      file "${log_file}"        // Logfile
 
     // Clean up the ephemeral working space (not the persistent file storage)
     afterScript "rm *"
