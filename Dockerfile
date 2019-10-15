@@ -16,8 +16,8 @@ RUN cd /usr/local/ && \
     wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash Miniconda3-latest-Linux-x86_64.sh -b -p /usr/local/miniconda && \
     rm Miniconda3-latest-Linux-x86_64.sh && \
-    /bin/bash -c "source ~/.bashrc" && \
-    conda activate && \
-    conda install -c bioconda bowtie2 && \
-    conda install -c bioconda krakenuniq && \
+    ln -s /usr/local/miniconda/bin/conda /usr/local/bin/ && \
+    conda init bash && \
+    /bin/bash -c "source /root/.bashrc" && \
+    conda install -c bioconda bowtie2 krakenuniq && \
     conda clean -afy
