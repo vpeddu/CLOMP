@@ -118,7 +118,7 @@ params.INPUT_FOLDER = false
 params.INPUT_SUFFIX = ".fastq.gz"
 params.PAIRED_END = false
 params.OUTDIR = false
-params.SNAP_INDEXES = false
+params.SNAP_INDEXES = "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.0/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.1/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.2/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.3/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.4/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.5/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.6/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.7/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.0/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.1/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.2/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.3/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.4/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.5/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.6/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.7/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.0/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.1/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.2/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.3/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.4/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.5/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.6/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.7/"
 params.SNAP_OPTIONS = "-mrl 65 -d 9 -h 30000 -om 1 -omax 20"
 params.HOST_FILTER_FIRST = false
 params.SECOND_PASS = false
@@ -151,7 +151,6 @@ params.BUILD_SAMS = false
 
 // Check to make sure that the required parameters have been set
 if (!params.INPUT_FOLDER){ exit 1, "Must provide folder containing input files with --INPUT_FOLDER" }
-if (!params.SNAP_INDEXES){ exit 1, "Must provide SNAP indexes with --SNAP_INDEXES" }
 if (!params.OUTDIR){ exit 1, "Must provide output directory with --OUTDIR" }
 if (!params.KRAKEN_DB_PATH){ exit 1, "Must provide Kraken database with --KRAKEN_DB_PATH" }
 
