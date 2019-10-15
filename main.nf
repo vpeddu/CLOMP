@@ -21,10 +21,10 @@ def helpMessage() {
 
     The typical command for running the pipeline is as follows:
 
-    nextflow run FredHutch/CLOMP \
-        --INPUT_FOLDER reads/ \
-        --SNAP_INDEXES snap_idx/nt.00.0/,snap_idx/nt.00.1/ \
-        --HOST_FILTER_FIRST \
+    nextflow run FredHutch/CLOMP \\
+        --INPUT_FOLDER reads/ \\
+        --SNAP_INDEXES snap_idx/nt.00.0/,snap_idx/nt.00.1/ \\
+        --HOST_FILTER_FIRST \\
         --OUTDIR output/
         
 
