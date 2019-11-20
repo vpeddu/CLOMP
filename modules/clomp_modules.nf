@@ -249,8 +249,16 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-echo "Starting to align ${r1} and ${r2}"
-snap-aligner paired ${SNAP_DB} ${r1} ${r2} -o ${base}_${SNAP_DB.name}.sam -t 16 ${params.SNAP_OPTIONS}
+echo "Aligning ${r1} and ${r2}"
+
+# Decompress the input files
+echo "Decompressing ${r1}"
+gunzip -c ${r1} > R1.fastq && rm ${r1}
+echo "Decompressing ${r2}"
+gunzip -c ${r2} > R2.fastq && rm ${r2}
+
+echo "Running SNAP"
+snap-aligner paired ${SNAP_DB} R1.fastq R2.fastq -o ${base}_${SNAP_DB.name}.sam -t 16 ${params.SNAP_OPTIONS}
 """
 }
 
@@ -281,8 +289,14 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-echo "Starting to align ${r1}"
-snap-aligner single ${SNAP_DB} ${r1} -o ${base}_${SNAP_DB.name}.sam -t 16 ${params.SNAP_OPTIONS}
+echo "Aligning ${r1}"
+
+# Decompress the input files
+echo "Decompressing ${r1}"
+gunzip -c ${r1} > R1.fastq && rm ${r1}
+
+echo "Running SNAP"
+snap-aligner single ${SNAP_DB} R1.fastq -o ${base}_${SNAP_DB.name}.sam -t 16 ${params.SNAP_OPTIONS}
 """
 }
 
