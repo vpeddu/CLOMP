@@ -166,8 +166,6 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-gunzip -c ${r1}
-
 echo "Starting to trim ${r1}"
 java -jar \
     ${TRIMMOMATIC_JAR} \
