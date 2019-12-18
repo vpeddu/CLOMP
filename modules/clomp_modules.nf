@@ -369,6 +369,15 @@ from collections import defaultdict
 ncbi = NCBITaxa()
 
 
+# Make a function to run a shell command and catch any errors
+def subprocess_call(cmd):
+    return_code = subprocess.call(cmd, shell = True)
+    assert return_code == 0, "Exit code \{\} for \{\}".format(
+        return_code,
+        cmd
+    )
+
+
 # The tie-breaking function takes a list of taxid,edit_distances in the form [[taxid,edit_distance],[taxid,edit_distance],..
 # references the global variable LOGIC to control the underlying tiebreaking code, breaks ties and 
 # returns a single taxid as a string and a Boolean value (as to whether the read needs to re-BLASTEd against host).
@@ -491,7 +500,7 @@ def new_write_kraken(basename, final_counts_map, num_unassigned):
 	
 	# kraken-report creates a file that Pavian likes - we name the file base_final_report.tsv
 	kraken_report_cmd = 'krakenuniq-report --db kraken_db --taxon-counts ${base}_temp_kraken.tsv > ${base}_final_report.tsv'
-	subprocess.call(kraken_report_cmd, shell=True)
+	subprocess_call(kraken_report_cmd)
 	
 
 # takes a list of finished output files and builds sam files for species level assignments 
@@ -574,11 +583,11 @@ def build_sams(input_list):
 			g.close()
 			print('building bowtie2 index') 
 			# build the bowtie2 index 
-			subprocess.call('bowtie2-build ' + ref_fasta + ' ' + ref_db + ' > /dev/null 2>&1 ', shell=True)
+			subprocess_call('bowtie2-build ' + ref_fasta + ' ' + ref_db + ' > /dev/null 2>&1 ')
 			print('Done with index build. Aligning...')
 			# aling and output the sam file 
-			subprocess.call('bowtie2 -x ' + ref_db + ' -@ ' + THREADS + ' -f -U ' + base + '_' + str(taxid) + '.fasta --no-unal > ' + base + '_' + str(taxid) + '.sam', shell=True)
-			subprocess.call('rm ' + ref_db, shell=True)
+			subprocess_call('bowtie2 -x ' + ref_db + ' -@ ' + THREADS + ' -f -U ' + base + '_' + str(taxid) + '.fasta --no-unal > ' + base + '_' + str(taxid) + '.sam')
+			subprocess_call('rm ' + ref_db)
 				
 
 base_start_time = timeit.default_timer()
@@ -679,7 +688,7 @@ g.close()
 e.close()
 if "${params.BLAST_CHECK}" == "true":
     z.close()
-    subprocess.call('blastn -db ${BLAST_CHECK_DB} -task blastn -query ${base}_recheck.txt -num_threads 20 -evalue ${params.BLAST_EVAL} -outfmt "6 qseqid" -max_target_seqs 1 -max_hsps 1 > blast_check.txt', shell=True)
+    subprocess_call('blastn -db ${BLAST_CHECK_DB} -task blastn -query ${base}_recheck.txt -num_threads 20 -evalue ${params.BLAST_EVAL} -outfmt "6 qseqid" -max_target_seqs 1 -max_hsps 1 > blast_check.txt')
     redo_taxid_list = []
     for line in open('blast_check.txt'):
         redo_taxid_list.append(line.split())
@@ -701,7 +710,7 @@ if "${params.BLAST_CHECK}" == "true":
 #For each sample, we make a folder and for every taxid, we create a FASTA file that are named by their taxid.  We lose the read ID in this file.  #nicetohave would be hold the read ID here.
 #Here we will write a FASTA of unique reads
 if "${params.WRITE_UNIQUES}" == "true":
-    subprocess.call('mkdir ' + "${base}".split('.')[0], shell=True)
+    subprocess_call('mkdir ' + "${base}".split('.')[0])
     for id in taxid_to_read_set.keys():
         f = open("${base}".split('.')[0] + '/' + str(id) + '_uniques.txt', 'w')
         count = 0
