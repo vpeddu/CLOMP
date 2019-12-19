@@ -372,7 +372,7 @@ ncbi = NCBITaxa()
 # Make a function to run a shell command and catch any errors
 def subprocess_call(cmd):
     return_code = subprocess.call(cmd, shell = True)
-    assert return_code == 0, "Exit code \{\} for \{\}".format(
+    assert return_code == 0, "Exit code %d for %s" % (
         return_code,
         cmd
     )
