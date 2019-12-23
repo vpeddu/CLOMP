@@ -499,7 +499,7 @@ def new_write_kraken(basename, final_counts_map, num_unassigned):
 	l.close()
 	
 	# kraken-report creates a file that Pavian likes - we name the file base_final_report.tsv
-	kraken_report_cmd = 'krakenuniq-report --db kraken_db --taxon-counts ${base}_temp_kraken.tsv > ${base}_final_report.tsv'
+	kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ${base}_temp_kraken.tsv > ${base}_final_report.tsv'
 	subprocess_call(kraken_report_cmd)
 	
 
