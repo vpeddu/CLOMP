@@ -347,6 +347,8 @@ process CLOMP_summary {
     output:
       file "*final_report.tsv"  // Final report TSV
       file "${log_file}"        // Logfile
+      file "*unassigned.txt"    //unassigned reads file
+      file "*assignments.txt"   // assigned reads file
 
     // Clean up the ephemeral working space (not the persistent file storage)
     afterScript "rm *"
