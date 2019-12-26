@@ -118,7 +118,20 @@ params.INPUT_FOLDER = false
 params.INPUT_SUFFIX = ".fastq.gz"
 params.PAIRED_END = false
 params.OUTDIR = false
-params.SNAP_INDEXES = "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.0/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.1/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.2/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.3/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.4/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.5/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.6/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.00.7/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.0/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.1/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.2/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.3/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.4/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.5/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.6/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.01.7/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.0/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.1/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.2/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.3/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.4/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.5/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.6/,s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/nt.02.7/"
+params.SNAP_INDEXES = "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.00/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.01/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.02/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.03/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.04/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.05/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.06/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.07/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.08/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.09/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.10/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.11/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.12/,
+s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/full_clomp_db/nt.13/" 
 params.SNAP_OPTIONS = "-mrl 65 -d 9 -h 30000 -om 1 -omax 20"
 params.HOST_FILTER_FIRST = false
 params.SECOND_PASS = false
