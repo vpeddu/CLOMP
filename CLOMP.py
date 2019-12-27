@@ -56,6 +56,9 @@ def parse_ini(ini_path):
 			elif var == 'THREADS': 
 				global THREADS
 				THREADS = val
+			elif var == 'DEDUPLICATE':
+				global DEDUPLICATE
+				DEDUPLICATE = val
 			elif var == 'BASE_DELIMITER':
 				global BASE_DELIMITER
 				BASE_DELIMITER = val
@@ -325,7 +328,15 @@ def trim(to_trim_list):
 		base = file_name.split(BASE_DELIMITER)[0]
 		# if the output file doesn't exist yet or we want to overwrite it anyways 
 		if not os.path.isfile(base + BASE_DELIMITER + R1 + TRIM_SUFFIX) or OVERWRITE:
-			if PAIRED_END:
+			if DEDUPLICATE and not PAIRED_END:
+				trim_cmd  = 'dedupe.sh in=' +  file_name + ' out=stdout | ' + 'java -jar ' + TRIMMOMATIC_JAR_PATH + \
+					' SE -threads ' + THREADS + ' ' + "/dev/stdin" + ' ' + base + BASE_DELIMITER + R1 + TRIM_SUFFIX +  \
+					' ' + SEQUENCER + TRIMMOMATIC_ADAPTER_PATH + \
+					TRIMMOMATIC_OPTIONS + ' > ' + base + '.trim.log'
+
+
+
+			if PAIRED_END and not DEDUPLICATE:
 				r1 = file_name
 				# this assumes that r1 and r2 have their R1 and R2 specifiers in identical places in their names and are otherwise identical 
 				r2 = file_name.split(R1)[0] + R2 + file_name.split(R2)[1]
@@ -333,7 +344,7 @@ def trim(to_trim_list):
 					r2 + ' ' + base + BASE_DELIMITER + R1 + TRIM_SUFFIX + ' ' + base + BASE_DELIMITER + R2 + TRIM_SUFFIX + ' ' + SEQUENCER + \
 					TRIMMOMATIC_ADAPTER_PATH + TRIMMOMATIC_OPTIONS + ' > ' + base + '.trim.log'
 				
-			else:
+			if not PAIRED_END and not DEDUPLICATE:
 				trim_cmd = 'java -jar ' + TRIMMOMATIC_JAR_PATH + ' SE -threads ' + THREADS + ' ' + file_name + \
 					' ' + base + BASE_DELIMITER + R1 + TRIM_SUFFIX +  ' ' + SEQUENCER + TRIMMOMATIC_ADAPTER_PATH + \
 					TRIMMOMATIC_OPTIONS + ' > ' + base + '.trim.log'
@@ -352,7 +363,8 @@ def trim(to_trim_list):
 			
 	return done_trim_list
 
-# takes a list of files and aligns all of them to all the snap databases found in DB_LIST
+
+# Takes a list of files and aligns all of them to all the snap databases found in DB_LIST
 # writes output .sam files to disk and returns a set containing all outputs 
 def snap(to_snap_list):
 	done_snap_list = set()
@@ -607,10 +619,10 @@ def build_sams(input_list):
 			# aling and output the sam file 
 			subprocess.call('bowtie2 -x ' + ref_db + ' -@ ' + THREADS + ' -f -U ' + base + '_' + str(taxid) + '.fasta --no-unal > ' + base + '_' + str(taxid) + '.sam', shell=True)
 			subprocess.call('rm ' + ref_db, shell=True)
-				
-				
+
+
 if __name__ == '__main__':
-	
+	print('CLOMP version 1.1') 
 	# CLOMP assumes the FASTQ sequence files for a given run are in their own folder along with the initialization file below.
 	parser = argparse.ArgumentParser(description='Clinically Okay Metagenomic Pipeline - run inside a folder with your input files')
 	parser.add_argument('ini_path',help='Path to CLOMP.ini file, this controls almost every aspect of the exection, most defaults are sane but you need to manually set some values before you can run this correctly')
@@ -621,8 +633,11 @@ if __name__ == '__main__':
 	parse_ini(args.ini_path)
 	
 	#Assumes that the files coming off the sequencer will be gzipped, but okay if not.  Currently does not handle other compressions.
-	subprocess.call('gunzip *.gz',shell=True)
+	#unzip in parallel of 8
+	subprocess.call('ls *.gz | parallel -j 8 gunzip {}',shell=True)
 	
+
+
 	# We assume that if you are submitting paired end reads every R1 has an R2
 	# Core data flow is through lists of files.
 	# here we generate the input file list using the provided variables and wildcard expansion (glob is basically like unix ls)
@@ -663,7 +678,7 @@ if __name__ == '__main__':
 		read_to_taxids_map = {}
 		reads_seq_map = {}
 		#For every SAM file for a given sample, read in the SAM files.
-		for sam_file in glob.glob(file_base + '*.sam'):
+		for sam_file in glob.glob(file_base + BASE_DELIMITER + '*.sam'):
 			file_start_time = timeit.default_timer()
 			print('Reading in ' + sam_file)
 			
