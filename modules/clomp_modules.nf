@@ -69,7 +69,7 @@ bowtie2 \
     -S ${base}_mappedSam 2>&1 | \
     tee -a ${base}.log
 
-#echo ${NXF_WORK} > ${base}.log
+echo ${NXF_WORK} > ${base}.log
 echo "Extracting the BAM alignments"
 samtools view -Sb -@ 16 ${base}_mappedSam > ${base}_mappedBam
 
