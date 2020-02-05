@@ -31,6 +31,9 @@ params.BUILD_SAMS = false
  */
 
 process filter_human_paired {
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
 
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/bowtie2:bowtie2-2.2.9-samtools-1.3.1"
@@ -91,6 +94,10 @@ samtools view -@ 16 -f 128 - | \
 
 process filter_human_single {
 
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/bowtie2:bowtie2-2.2.9-samtools-1.3.1"
 
@@ -141,6 +148,10 @@ samtools view -@ 16 -f 4 ${base}_mappedBam | \
 
 process trimmomatic_single {
 
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/openjdk:jre-8"
 
@@ -180,6 +191,10 @@ java -jar \
 
 process trimmomatic_paired {
 
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/openjdk:jre-8"
 
@@ -223,6 +238,10 @@ java -jar \
 
 process snap_paired {
 
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/snap-no-header:v1.0beta.18--0"
 
@@ -263,6 +282,10 @@ snap-aligner paired ${SNAP_DB} R1.fastq R2.fastq -o ${base}_${SNAP_DB.name}.sam 
 
 process snap_single {
 
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/snap-no-header:v1.0beta.18--0"
 
@@ -301,6 +324,10 @@ snap-aligner single ${SNAP_DB} R1.fastq -o ${base}_${SNAP_DB.name}.sam -t 16 ${p
 
 process collect_snap_results {
 
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
     // Define the Docker container used for this step
     container "ubuntu:18.04"
 
@@ -337,6 +364,10 @@ cat ${sam_list} > ${base}.sam
 
 process CLOMP_summary {
 
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/clomp:v0.1.2"
 
