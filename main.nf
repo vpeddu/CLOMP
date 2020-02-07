@@ -203,6 +203,7 @@ include filter_human_paired as filter_human_paired_second_pass from './modules/c
     BWT_SECOND_PASS_OPTIONS: params.BWT_SECOND_PASS_OPTIONS, 
     BWT_DB_PREFIX: params.BWT_DB_PREFIX
 )
+include bbMask_Single from './modules/clomp_modules'
 include snap_single from './modules/clomp_modules' params(SNAP_OPTIONS: params.SNAP_OPTIONS)
 include snap_paired from './modules/clomp_modules' params(SNAP_OPTIONS: params.SNAP_OPTIONS)
 include CLOMP_summary from './modules/clomp_modules' params(
