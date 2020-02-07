@@ -297,7 +297,7 @@ process snap_paired {
       tuple val(base), file("${base}_${SNAP_DB.name}.sam")
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
+   
 
     // Code to be executed inside the task
     script:
@@ -341,7 +341,7 @@ process snap_single {
       tuple val(base), file("${base}_${SNAP_DB.name}.sam")
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
+   
 
     // Code to be executed inside the task
     script:
@@ -382,7 +382,7 @@ process collect_snap_results {
       tuple val(base), file("${base}.sam")
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
+   
 
     // Code to be executed inside the task
     script:
@@ -425,7 +425,7 @@ process CLOMP_summary {
       file "*assignments.txt"   // assigned reads file
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
+   
 
     // Code to be executed inside the task
     script:
