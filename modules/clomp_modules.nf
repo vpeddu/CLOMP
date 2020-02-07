@@ -238,7 +238,7 @@ java -jar \
 """
 }
 
-process bbtools_Mask {
+process bbMask_Single {
 
     // Retry at most 3 times
     errorStrategy 'retry'
@@ -253,7 +253,7 @@ process bbtools_Mask {
 
     // Define the output files
     output:
-      tuple val(base), file("${base}_R1_trimmed.fastq.gz")
+      tuple val(base), file("${base}_R1_trimmed_masked.fastq.gz")
 
     // Clean up the ephemeral working space (not the persistent file storage)
     afterScript "rm *"
@@ -268,14 +268,22 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-echo "Starting to trim ${r1}"
-java -jar \
-    ${TRIMMOMATIC_JAR} \
-    SE \
-    -threads 16 \
-    ${r1} \
-    ${base}_R1_trimmed.fastq.gz \
-    ${params.SEQUENCER}${TRIMMOMATIC_ADAPTER}${params.TRIMMOMATIC_OPTIONS}
+#echo "Starting to trim ${r1}"
+#java -jar \
+#    ${TRIMMOMATIC_JAR} \
+#    SE \
+#    -threads 16 \
+#    ${r1} \
+#    ${base}_R1_trimmed.fastq.gz \
+#    ${params.SEQUENCER}${TRIMMOMATIC_ADAPTER}${params.TRIMMOMATIC_OPTIONS}
+
+echo "Masking ${r1}"
+bbduk.sh \
+    in=${base}_R1_trimmed.fastq.gz \
+    out=_R1_trimmed_masked.fastq.gz \
+    entropy=0.5 \
+    entropywindow=50 \
+    entropyk=5
 """
 }
 

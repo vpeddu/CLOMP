@@ -327,8 +327,11 @@ workflow {
                 trimmomatic_single.out,
                 BWT_FILES
             )
+            bbMask_Single(
+            input_read_ch
+            )
             snap_single(
-                filter_human_single.out[0],
+                bbMask_Single.out[0],
                 SNAP_INDEXES_CH
             )
         }
