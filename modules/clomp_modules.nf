@@ -49,7 +49,6 @@ process filter_human_paired {
       tuple val(base), file("${base}.log")
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
 
     // Code to be executed inside the task
     script:
@@ -112,7 +111,7 @@ process filter_human_single {
       tuple val(base), file("${base}.log")
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
+    
 
     // Code to be executed inside the task
     script:
@@ -166,7 +165,7 @@ process trimmomatic_single {
       tuple val(base), file("${base}_R1_trimmed.fastq.gz")
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
+    
 
     // Code to be executed inside the task
     script:
@@ -211,7 +210,7 @@ process trimmomatic_paired {
       tuple val(base), file("${base}_R1_trimmed.fastq.gz"), file("${base}_R2_trimmed.fastq.gz")
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
+    
 
     // Code to be executed inside the task
     script:
@@ -256,7 +255,7 @@ process bbMask_Single {
       tuple val(base), file("${base}_R1_trimmed_masked.fastq.gz")
 
     // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
+    
 
     // Code to be executed inside the task
     script:
