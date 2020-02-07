@@ -324,15 +324,15 @@ workflow {
                 TRIMMOMATIC_JAR,
                 TRIMMOMATIC_ADAPTER
             )
+           bbMask_Single(
+            trimmomatic_single.out
+            )
             filter_human_single(
-                trimmomatic_single.out,
+                bbMask_Single.out,
                 BWT_FILES
             )
-            bbMask_Single(
-            input_read_ch
-            )
             snap_single(
-                bbMask_Single.out[0],
+                filter_human_single.out[0],
                 SNAP_INDEXES_CH
             )
         }
