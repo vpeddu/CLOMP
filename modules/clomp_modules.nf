@@ -332,50 +332,6 @@ snap-aligner paired ${SNAP_DB} R1.fastq R2.fastq -o ${base}_${SNAP_DB.name}.sam 
 """
 }
 
-process snap_paired {
-
-    // Retry at most 3 times
-    errorStrategy 'retry'
-    maxRetries 3
-    
-    // Define the Docker container used for this step
-    container "quay.io/fhcrc-microbiome/snap-no-header:v1.0beta.18--0"
-
-    // Define the input files
-    input:
-      tuple val(base), file(r1), file(r2)
-      each file(SNAP_DB)
-
-    // Define the output files
-    output:
-      tuple val(base), file("${base}_${SNAP_DB.name}.sam")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
-
-    // Code to be executed inside the task
-    script:
-      """
-#!/bin/bash
-
-set -e
-
-# For logging and debugging, list all of the files in the working directory
-ls -lahtr
-
-echo "Aligning ${r1} and ${r2}"
-
-# Decompress the input files
-echo "Decompressing ${r1}"
-gunzip -c ${r1} > R1.fastq && rm ${r1}
-echo "Decompressing ${r2}"
-gunzip -c ${r2} > R2.fastq && rm ${r2}
-
-echo "Running SNAP"
-snap-aligner paired ${SNAP_DB} R1.fastq R2.fastq -o ${base}_${SNAP_DB.name}.sam -t 16 ${params.SNAP_OPTIONS}
-"""
-}
-
 process snap_single {
 
     // Retry at most 3 times
