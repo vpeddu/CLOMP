@@ -268,15 +268,6 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-#echo "Starting to trim ${r1}"
-#java -jar \
-#    ${TRIMMOMATIC_JAR} \
-#    SE \
-#    -threads 16 \
-#    ${r1} \
-#    ${base}_R1_trimmed.fastq.gz \
-#    ${params.SEQUENCER}${TRIMMOMATIC_ADAPTER}${params.TRIMMOMATIC_OPTIONS}
-
 echo "Masking ${r1}"
 bbduk.sh \
     in=${base}_R1_trimmed.fastq.gz \
