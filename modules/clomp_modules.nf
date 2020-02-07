@@ -189,48 +189,6 @@ java -jar \
 """
 }
 
-process bbtools_Mask {
-
-    // Retry at most 3 times
-    errorStrategy 'retry'
-    maxRetries 3
-    
-    // Define the Docker container used for this step
-    container "quay.io/thanhleviet/bbtools:latest"
-
-    // Define the input files
-    input:
-      tuple val(base), file(r1)
-      
-
-    // Define the output files
-    output:
-      tuple val(base), file("${base}_R1_trimmed_masked.fastq.gz")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
-    afterScript "rm *"
-
-    // Code to be executed inside the task
-    script:
-      """
-#!/bin/bash
-
-set -e
-
-# For logging and debugging, list all of the files in the working directory
-ls -lahtr
-
-echo "Starting to trim ${r1}"
-java -jar \
-    ${TRIMMOMATIC_JAR} \
-    SE \
-    -threads 16 \
-    ${r1} \
-    ${base}_R1_trimmed.fastq.gz \
-    ${params.SEQUENCER}${TRIMMOMATIC_ADAPTER}${params.TRIMMOMATIC_OPTIONS}
-"""
-}
-
 process trimmomatic_paired {
 
     // Retry at most 3 times
