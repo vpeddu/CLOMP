@@ -270,7 +270,7 @@ ls -lahtr
 echo "Masking ${r1}"
 bbduk.sh \
     in=${base}_R1_trimmed.fastq.gz \
-    out=_R1_trimmed_masked.fastq.gz \
+    out=${base}_R1_trimmed_masked.fastq.gz \
     entropy=0.5 \
     entropywindow=50 \
     entropyk=5
