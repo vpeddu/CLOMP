@@ -244,6 +244,7 @@ process bbMask_Single {
     maxRetries 3
     
     // Define the Docker container used for this step
+    // should build our own docker image for this 
     container "quay.io/biocontainers/bbmap:38.76--h516909a_0"
 
     // Define the input files
