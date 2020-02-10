@@ -244,7 +244,7 @@ process bbMask_Single {
     maxRetries 3
     
     // Define the Docker container used for this step
-    container "quay.io/thanhleviet/bbtools:latest"
+    container "quay.io/thanhleviet/bbtools:master"
 
     // Define the input files
     input:
