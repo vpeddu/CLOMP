@@ -239,10 +239,12 @@ workflow {
     SNAP_INDEXES_CH = Channel
         .from(params.SNAP_INDEXES.split(","))
         .map { it -> file(it) }
+        .ifEmpty { error "Please specify SNAP indexes with --SNAP_INDEXES" }
 
     if ( params.PAIRED_END ){
         input_read_ch = Channel
             .fromFilePairs("${params.INPUT_FOLDER}*_R{1,2}*${params.INPUT_SUFFIX}")
+            .ifEmpty { error "Cannot find any FASTQ pairs in ${params.INPUT_FOLDER} ending with ${params.INPUT_SUFFIX}" }
             .map { it -> [it[0], it[1][0], it[1][1]]}
 
         if ( params.HOST_FILTER_FIRST ){
@@ -293,6 +295,7 @@ workflow {
     } else {
         input_read_ch = Channel
             .fromPath("${params.INPUT_FOLDER}*${params.INPUT_SUFFIX}")
+            .ifEmpty { error "Cannot find any FASTQ pairs in ${params.INPUT_FOLDER} ending with ${params.INPUT_SUFFIX}" }
             .map { it -> [it.name.replace(/${params.INPUT_SUFFIX}/, ""), file(it)]}
         if ( params.HOST_FILTER_FIRST ){
             filter_human_single(
