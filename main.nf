@@ -232,6 +232,7 @@ workflow {
 
     BWT_FILES = Channel
         .fromPath("${params.BWT_DB_LOCATION}/${params.BWT_DB_PREFIX}*")
+        .ifEmpty { error "Cannot find any files in ${params.BWT_DB_LOCATION} starting with ${params.BWT_DB_PREFIX}" }
         .map{it -> file(it)}
         .collect()
 
