@@ -30,4 +30,5 @@ jobs:
             --KRAKEN_DB_PATH test_data/kraken_db/ \
             --BWT_DB_LOCATION test_data/bt2/ \
             --TRIMMOMATIC_ADAPTER_PATH test_data/adapters.fa
+            --BWT_DB_PREFIX human_ref
 
