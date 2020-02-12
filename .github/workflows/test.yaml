@@ -23,4 +23,5 @@ jobs:
             --OUTDIR test_data/out/ \
             -work-dir test_data/work/ \
             --SNAP_INDEXES "test_data/test_db_1/,test_data/test_db_2/,test_data/test_db_3/" \
-            --TRIMMOMATIC_OPTIONS ":2:30:10 SLIDINGWINDOW:4:20"
+            --TRIMMOMATIC_OPTIONS ":2:30:10 SLIDINGWINDOW:4:20" \
+            -with-docker ubuntu:18.04
