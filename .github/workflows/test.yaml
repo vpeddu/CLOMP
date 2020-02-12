@@ -26,7 +26,7 @@ jobs:
             --TRIMMOMATIC_OPTIONS ":2:30:10 SLIDINGWINDOW:4:20" \
             --TRIMMOMATIC_JAR_PATH test_data/trimmomatic-0.38.jar \
             -with-docker ubuntu:18.04 \
-            --KRAKEN_DB_PATH test_data/kraken_db/ \ 
+            --KRAKEN_DB_PATH test_data/kraken_db/ \
             --BWT_DB_LOCATION test_data/bt2/ \
             --TRIMMOMATIC_ADAPTER_PATH test_data/adapters.fa
 
