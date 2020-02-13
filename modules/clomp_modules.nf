@@ -76,15 +76,15 @@ samtools view -Sb -@ 16 ${base}_mappedSam > ${base}_mappedBam
 
 # Extract the R1
 echo "Extracting the R1 FASTQ"
-samtools view -@ 16 -F 2 ${base}_mappedBam | \
-samtools view -@ 16 -f 64 - | \
+samtools view -@ ${task.cpus} -F 2 ${base}_mappedBam | \
+samtools view -@ ${task.cpus} -f 64 - | \
     awk \'{if(\$3 == \"*\") print \"@\" \$1 \"\\n\" \$10 \"\\n\" \"+\" \$1 \"\\n\" \$11}\' | \
     gzip -c > ${base}_R1_filtered.fastq.gz
 
 echo "Extracting the R2 FASTQ"
 # Extract the R2
-samtools view -@ 16 -F 2 ${base}_mappedBam | \
-samtools view -@ 16 -f 128 - | \
+samtools view -@ ${task.cpus} -F 2 ${base}_mappedBam | \
+samtools view -@ ${task.cpus} -f 128 - | \
     awk \'{if(\$3 == \"*\") print \"@\" \$1 \"\\n\" \$10 \"\\n\" \"+\" \$1 \"\\n\" \$11}\' | \
     gzip -c > ${base}_R2_filtered.fastq.gz
       """
@@ -126,7 +126,7 @@ ls -lahtr
 echo "Starting the alignment of ${r1}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
-    --threads 16 \
+    --threads ${task.cpus} \
     -x ${params.BWT_DB_PREFIX} \
     -q \
     -U <(gunzip -c ${r1}) \
@@ -139,7 +139,7 @@ samtools view -Sb -@ 16 ${base}_mappedSam > ${base}_mappedBam
 
 # Extract the R1
 echo "Extracting the FASTQ"
-samtools view -@ 16 -f 4 ${base}_mappedBam | \
+samtools view -@ ${task.cpus} -f 4 ${base}_mappedBam | \
     awk \'{if(\$3 == \"*\") print \"@\" \$1 \"\\n\" \$10 \"\\n\" \"+\" \$1 \"\\n\" \$11}\' | \
     gzip -c > ${base}_R1_filtered.fastq.gz
       """
@@ -181,7 +181,7 @@ echo "Starting to trim ${r1}"
 java -jar \
     ${TRIMMOMATIC_JAR} \
     SE \
-    -threads 16 \
+    -threads ${task.cpus} \
     ${r1} \
     ${base}_R1_trimmed.fastq.gz \
     ${params.SEQUENCER}${TRIMMOMATIC_ADAPTER}${params.TRIMMOMATIC_OPTIONS}
@@ -226,7 +226,7 @@ echo "Starting to trim ${r1} and ${r2}"
 java -jar \
     ${TRIMMOMATIC_JAR} \
     PE \
-    -threads 16 \
+    -threads ${task.cpus} \
     ${r1} \
     ${r2} \
     ${base}_R1_trimmed.fastq.gz \
@@ -319,7 +319,7 @@ echo "Decompressing ${r2}"
 gunzip -c ${r2} > R2.fastq && rm ${r2}
 
 echo "Running SNAP"
-snap-aligner paired ${SNAP_DB} R1.fastq R2.fastq -o ${base}_${SNAP_DB.name}.sam -t 16 ${params.SNAP_OPTIONS}
+snap-aligner paired ${SNAP_DB} R1.fastq R2.fastq -o ${base}_${SNAP_DB.name}.sam -t ${task.cpus} ${params.SNAP_OPTIONS}
 """
 }
 
@@ -361,7 +361,7 @@ echo "Decompressing ${r1}"
 gunzip -c ${r1} > R1.fastq && rm ${r1}
 
 echo "Running SNAP"
-snap-aligner single ${SNAP_DB} R1.fastq -o ${base}_${SNAP_DB.name}.sam -t 16 ${params.SNAP_OPTIONS}
+snap-aligner single ${SNAP_DB} R1.fastq -o ${base}_${SNAP_DB.name}.sam -t ${task.cpus} ${params.SNAP_OPTIONS}
 """
 }
 
