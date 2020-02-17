@@ -43,6 +43,8 @@ def helpMessage() {
       --SNAP_OPTIONS
                 Options used to run SNAP (must enclose in quotes)
                 default: -mrl 65 -d 9 -h 30000 -om 1 -omax 20
+      --SNAP_BATCHSIZE
+                Number of samples to align in parallel over each SNAP index shard, in a batch
       --HOST_FILTER_FIRST
                 If specified, perform host filtering prior to trimming
       --SECOND_PASS
@@ -148,6 +150,7 @@ params.HOST_FILTER_TAXID = 9606
 params.WRITE_UNIQUES = true
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
+params.SNAP_BATCHSIZE = 20
 
 // Check to make sure that the required parameters have been set
 if (!params.INPUT_FOLDER){ exit 1, "Must provide folder containing input files with --INPUT_FOLDER" }
@@ -179,6 +182,9 @@ KRAKEN_DB = [
  * Import the processes used in this workflow
  */
 
+include collect_snap_results from './modules/clomp_modules'
+include validate_single from './modules/clomp_modules'
+include validate_paired from './modules/clomp_modules'
 include trimmomatic_single from './modules/clomp_modules' params(
     SEQUENCER: params.SEQUENCER, 
     TRIMMOMATIC_OPTIONS: params.TRIMMOMATIC_OPTIONS
@@ -247,9 +253,15 @@ workflow {
             .ifEmpty { error "Cannot find any FASTQ pairs in ${params.INPUT_FOLDER} ending with ${params.INPUT_SUFFIX}" }
             .map { it -> [it[0], it[1][0], it[1][1]]}
 
+        // Validate that the inputs are paired-end gzip-compressed FASTQ
+        // This will also enforce that all read pairs are named ${sample_name}.R[12].fastq.gz
+        validate_paired(
+            input_read_ch
+        )
+
         if ( params.HOST_FILTER_FIRST ){
             filter_human_paired(
-                input_read_ch,
+                validate_paired.out,
                 BWT_FILES
             )
             trimmomatic_paired(
@@ -263,18 +275,18 @@ workflow {
                     BWT_FILES
                 )
                 snap_paired(
-                    filter_human_paired_second_pass.out,
+                    filter_human_paired_second_pass.out.collate(params.SNAP_BATCHSIZE),
                     SNAP_INDEXES_CH
                 )
             } else {
                 snap_paired(
-                    trimmomatic_paired.out,
+                    trimmomatic_paired.out.collate(params.SNAP_BATCHSIZE),
                     SNAP_INDEXES_CH
                 )
             }
         } else {
             trimmomatic_paired(
-                input_read_ch,
+                validate_paired.out,
                 TRIMMOMATIC_JAR,
                 TRIMMOMATIC_ADAPTER
             )
@@ -283,12 +295,23 @@ workflow {
                 BWT_FILES
             )
             snap_paired(
-                filter_human_paired.out[0],
+                filter_human_paired.out[0].collate(params.SNAP_BATCHSIZE),
                 SNAP_INDEXES_CH
             )
         }
+
+        collect_snap_results(
+            snap_paired.out.flatten().map{
+                it -> [it.name.split("__")[0], it]
+            }.groupTuple()
+        )
+
         CLOMP_summary(
-            snap_paired.out.groupTuple().join(filter_human_paired.out[1]),
+            collect_snap_results.out.join(
+                filter_human_paired.out[1].map{
+                    it -> [it.name.split(".log")[0], it]
+                }
+            ),
             BLAST_CHECK_DB,
             KRAKEN_DB
         )
@@ -297,9 +320,16 @@ workflow {
             .fromPath("${params.INPUT_FOLDER}*${params.INPUT_SUFFIX}")
             .ifEmpty { error "Cannot find any FASTQ pairs in ${params.INPUT_FOLDER} ending with ${params.INPUT_SUFFIX}" }
             .map { it -> [it.name.replace(/${params.INPUT_SUFFIX}/, ""), file(it)]}
+
+        // Validate that the inputs are single-end gzip-compressed FASTQ
+        // This will also enforce that all read pairs are named ${sample_name}.R1.fastq.gz
+        validate_single(
+            input_read_ch
+        )
+
         if ( params.HOST_FILTER_FIRST ){
             filter_human_single(
-                input_read_ch,
+                validate_single.out,
                 BWT_FILES
             )
             trimmomatic_single(
@@ -313,35 +343,46 @@ workflow {
                     BWT_FILES
                 )
                 snap_single(
-                    filter_human_single_second_pass.out[0],
+                    filter_human_single_second_pass.out[0].collate(params.SNAP_BATCHSIZE),
                     SNAP_INDEXES_CH
                 )
             } else {
                 snap_single(
-                    trimmomatic_single.out,
+                    trimmomatic_single.out.collate(params.SNAP_BATCHSIZE),
                     SNAP_INDEXES_CH
                 )
             }
         } else {
             trimmomatic_single(
-                input_read_ch,
+                validate_single.out,
                 TRIMMOMATIC_JAR,
                 TRIMMOMATIC_ADAPTER
             )
-           bbMask_Single(
-            trimmomatic_single.out
+            bbMask_Single(
+                trimmomatic_single.out
             )
             filter_human_single(
                 bbMask_Single.out,
                 BWT_FILES
             )
             snap_single(
-                filter_human_single.out[0],
+                filter_human_single.out[0].collate(params.SNAP_BATCHSIZE),
                 SNAP_INDEXES_CH
             )
         }
+
+        collect_snap_results(
+            snap_single.out.flatten().map{
+                it -> [it.name.split("__")[0], it]
+            }.groupTuple()
+        )
+
         CLOMP_summary(
-            snap_single.out.groupTuple().join(filter_human_single.out[1]),
+            collect_snap_results.out.join(
+                filter_human_single.out[1].map{
+                    it -> [it.name.split(".log")[0], it]
+                }
+            ),
             BLAST_CHECK_DB,
             KRAKEN_DB
         )

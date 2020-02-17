@@ -30,6 +30,57 @@ params.BUILD_SAMS = false
  * Define the processes used in this workflow
  */
 
+// Validate that the input data is GZIP-compressed FASTQ - paired-end
+process validate_paired {
+    container "ubuntu:18.04"
+
+    input:
+      tuple val(prefix), file(R1), file(R2)
+
+    output:
+      tuple file("${prefix}.R1.fastq.gz"), file("${prefix}.R2.fastq.gz")
+
+"""
+#!/bin/bash
+
+set -e
+
+# Check for gzip-compressed input
+gzip -t ${R1} || (echo "${R1} is not gzip-compressed" && exit 1)
+gzip -t ${R2} || (echo "${R2} is not gzip-compressed" && exit 1)
+
+# Check that both read pairs have the same number of lines
+[[ \$(gunzip -c ${R1} | wc -l) != \$(gunzip -c ${R2} | wc -l) ]] & echo "${R1} and ${R2} have different numbers of lines" && exit 1
+
+# Rename the input files
+mv ${R1} ${prefix}.R1.fastq.gz
+mv ${R2} ${prefix}.R2.fastq.gz
+"""
+}
+
+// Validate that the input data is GZIP-compressed FASTQ - single-end
+process validate_single {
+    container "ubuntu:18.04"
+
+    input:
+      tuple val(prefix), file(R1)
+
+    output:
+      file "${prefix}.R1.fastq.gz"
+
+"""
+#!/bin/bash
+
+set -e
+
+# Check for gzip-compressed input
+gzip -t ${R1} || (echo "${R1} is not gzip-compressed" && exit 1)
+
+# Rename the input file
+mv ${R1} ${prefix}.R1.fastq.gz
+"""
+}
+
 process filter_human_paired {
     // Retry at most 3 times
     errorStrategy 'retry'
@@ -38,17 +89,15 @@ process filter_human_paired {
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/bowtie2:bowtie2-2.2.9-samtools-1.3.1"
 
-    // Define the input files
+    // Define the input files and set their filename in the execution folder
     input:
-      tuple val(base), file(r1), file(r2)
+      tuple file(R1), file(R2)
       file "*"
 
     // Define the output files
     output:
-      tuple val(base), file("${base}_R1_filtered.fastq.gz"), file("${base}_R2_filtered.fastq.gz")
-      tuple val(base), file("${base}.log")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
+      tuple file("${r1}"), file("${r2}")
+      file "*.log"
 
     // Code to be executed inside the task
     script:
@@ -60,6 +109,9 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
+# Get the sample name from the input FASTQ name
+sample_name=\$(echo ${r1} | sed 's/.R1.fastq.gz//')
+
 echo "Starting the alignment of ${r1} and ${r2}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
@@ -68,25 +120,29 @@ bowtie2 \
     -q \
     -1 <(gunzip -c ${r1}) \
     -2 <(gunzip -c ${r2}) \
-    -S ${base}_mappedSam 2>&1 | \
-    tee -a ${base}.log
+    -S \${sample_name}_mappedSam 2>&1 | \
+    tee -a \${sample_name}.log
+
+# Delete the input R1 and R2 so that we don't have to worry
+# that they are being used (in error) as outputs
+rm ${r1} ${r2}
 
 echo "Extracting the BAM alignments"
-samtools view -Sb -@ 16 ${base}_mappedSam > ${base}_mappedBam
+samtools view -Sb -@ 16 \${sample_name}_mappedSam > \${sample_name}_mappedBam
 
 # Extract the R1
 echo "Extracting the R1 FASTQ"
-samtools view -@ ${task.cpus} -F 2 ${base}_mappedBam | \
+samtools view -@ ${task.cpus} -F 2 \${sample_name}_mappedBam | \
 samtools view -@ ${task.cpus} -f 64 - | \
     awk \'{if(\$3 == \"*\") print \"@\" \$1 \"\\n\" \$10 \"\\n\" \"+\" \$1 \"\\n\" \$11}\' | \
-    gzip -c > ${base}_R1_filtered.fastq.gz
+    gzip -c > \${sample_name}.R1.fastq.gz
 
 echo "Extracting the R2 FASTQ"
 # Extract the R2
-samtools view -@ ${task.cpus} -F 2 ${base}_mappedBam | \
+samtools view -@ ${task.cpus} -F 2 \${sample_name}_mappedBam | \
 samtools view -@ ${task.cpus} -f 128 - | \
     awk \'{if(\$3 == \"*\") print \"@\" \$1 \"\\n\" \$10 \"\\n\" \"+\" \$1 \"\\n\" \$11}\' | \
-    gzip -c > ${base}_R2_filtered.fastq.gz
+    gzip -c > \${sample_name}.R2.fastq.gz
       """
 }
 
@@ -102,16 +158,13 @@ process filter_human_single {
 
     // Define the input files
     input:
-      tuple val(base), file(r1)
+      file r1
       file "*"
 
     // Define the output files
     output:
-      tuple val(base), file("${base}_R1_filtered.fastq.gz")
-      tuple val(base), file("${base}.log")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
-    
+      file "${r1}"
+      file "*.log"
 
     // Code to be executed inside the task
     script:
@@ -123,6 +176,9 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
+# Get the sample name from the input FASTQ name
+sample_name=\$(echo ${r1} | sed 's/.R1.fastq.gz//')
+
 echo "Starting the alignment of ${r1}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
@@ -130,18 +186,22 @@ bowtie2 \
     -x ${params.BWT_DB_PREFIX} \
     -q \
     -U <(gunzip -c ${r1}) \
-    -S ${base}_mappedSam 2>&1 | \
-    tee -a ${base}.log
+    -S \${sample_name}_mappedSam 2>&1 | \
+    tee -a \${sample_name}.log
 
-# echo ${workDir} > ${base}.log
+# Delete the input R1 so that we don't have to worry
+# that it is being used (in error) as output
+rm ${r1}
+
+# echo ${workDir} > \${sample_name}.log
 echo "Extracting the BAM alignments"
-samtools view -Sb -@ 16 ${base}_mappedSam > ${base}_mappedBam
+samtools view -Sb -@ 16 \${sample_name}_mappedSam > \${sample_name}_mappedBam
 
 # Extract the R1
 echo "Extracting the FASTQ"
-samtools view -@ ${task.cpus} -f 4 ${base}_mappedBam | \
+samtools view -@ ${task.cpus} -f 4 \${sample_name}_mappedBam | \
     awk \'{if(\$3 == \"*\") print \"@\" \$1 \"\\n\" \$10 \"\\n\" \"+\" \$1 \"\\n\" \$11}\' | \
-    gzip -c > ${base}_R1_filtered.fastq.gz
+    gzip -c > \${sample_name}.R1.fastq.gz
       """
 }
 
@@ -156,16 +216,13 @@ process trimmomatic_single {
 
     // Define the input files
     input:
-      tuple val(base), file(r1)
+      file r1
       file TRIMMOMATIC_JAR
       file TRIMMOMATIC_ADAPTER 
 
     // Define the output files
     output:
-      tuple val(base), file("${base}_R1_trimmed.fastq.gz")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
-    
+      file "${r1}"
 
     // Code to be executed inside the task
     script:
@@ -178,12 +235,16 @@ set -e
 ls -lahtr
 
 echo "Starting to trim ${r1}"
+
+# Rename the file to prevent collision
+mv ${r1} INPUT.${r1}
+
 java -jar \
     ${TRIMMOMATIC_JAR} \
     SE \
     -threads ${task.cpus} \
+    INPUT.${r1} \
     ${r1} \
-    ${base}_R1_trimmed.fastq.gz \
     ${params.SEQUENCER}${TRIMMOMATIC_ADAPTER}${params.TRIMMOMATIC_OPTIONS}
 """
 }
@@ -201,16 +262,13 @@ process trimmomatic_paired {
 
     // Define the input files
     input:
-      tuple val(base), file(r1), file(r2)
+      tuple file(r1), file(r2)
       file TRIMMOMATIC_JAR
       file TRIMMOMATIC_ADAPTER 
 
     // Define the output files
     output:
-      tuple val(base), file("${base}_R1_trimmed.fastq.gz"), file("${base}_R2_trimmed.fastq.gz")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
-    
+      tuple file("${r1}"), file("${r2}")
 
     // Code to be executed inside the task
     script:
@@ -229,11 +287,15 @@ java -jar \
     -threads ${task.cpus} \
     ${r1} \
     ${r2} \
-    ${base}_R1_trimmed.fastq.gz \
-    ${base}_R1_unpaired.fastq.gz \
-    ${base}_R2_trimmed.fastq.gz \
-    ${base}_R2_unpaired.fastq.gz \
+    OUTPUT_R1_trimmed.fastq.gz \
+    OUTPUT_R1_unpaired.fastq.gz \
+    OUTPUT_R2_trimmed.fastq.gz \
+    OUTPUT_R2_unpaired.fastq.gz \
     ${params.SEQUENCER}${TRIMMOMATIC_ADAPTER}${params.TRIMMOMATIC_OPTIONS}
+
+mv OUTPUT_R1_trimmed.fastq.gz ${r1}
+mv OUTPUT_R2_trimmed.fastq.gz ${r2}
+
 """
 }
 
@@ -249,14 +311,11 @@ process bbMask_Single {
 
     // Define the input files
     input:
-      tuple val(base), file(r1)
+      file r1
 
     // Define the output files
     output:
-      tuple val(base), file("${base}_R1_trimmed_masked.fastq.gz")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
-    
+      file("${r1}")
 
     // Code to be executed inside the task
     script:
@@ -268,10 +327,17 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
+# Get the sample name from the file name
+sample_name=\$(echo ${r1} | sed 's/.R1.fastq.gz//')
+echo "Processing \$sample_name"
+
+# Rename the input file to make sure we don't use it as the output
+mv ${r1} INPUT.${r1}
+
 echo "Masking ${r1}"
 bbduk.sh \
-    in=${base}_R1_trimmed.fastq.gz \
-    out=${base}_R1_trimmed_masked.fastq.gz \
+    in=INPUT.${r1} \
+    out=${r1} \
     entropy=0.5 \
     entropywindow=50 \
     entropyk=5
@@ -290,15 +356,12 @@ process snap_paired {
 
     // Define the input files
     input:
-      tuple val(base), file(r1), file(r2)
+      file paired_fastq_list
       each file(SNAP_DB)
 
     // Define the output files
     output:
-      tuple val(base), file("${base}_${SNAP_DB.name}.sam")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
-   
+      file("*${SNAP_DB.name}.sam")
 
     // Code to be executed inside the task
     script:
@@ -310,16 +373,34 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-echo "Aligning ${r1} and ${r2}"
+# Iterate over each of the R1 files
+for r1 in *.R1.fastq*; do
 
-# Decompress the input files
-echo "Decompressing ${r1}"
-gunzip -c ${r1} > R1.fastq && rm ${r1}
-echo "Decompressing ${r2}"
-gunzip -c ${r2} > R2.fastq && rm ${r2}
+    # Get the sample name from the file name
+    sample_name=\$(echo \${r1} | sed 's/.R1.fastq.gz//')
+    echo "Processing \$sample_name"
 
-echo "Running SNAP"
-snap-aligner paired ${SNAP_DB} R1.fastq R2.fastq -o ${base}_${SNAP_DB.name}.sam -t ${task.cpus} ${params.SNAP_OPTIONS}
+    r2=\${sample_name}.R1.fastq.gz
+    echo "Using \${r2} as the paired-end reads"
+
+    # Check for R2 file existence
+    [[ -s \${r2} ]]
+
+    echo "Aligning \${r1} and \${r2}"
+
+    # Decompress the input files
+    echo "Decompressing \${r1}"
+    gunzip -c \${r1} > R1.fastq && rm \${r1}
+    echo "Decompressing \${r2}"
+    gunzip -c \${r2} > R2.fastq && rm \${r2}
+
+    echo "Running SNAP"
+    snap-aligner paired ${SNAP_DB} R1.fastq R2.fastq -o \${sample_name}__${SNAP_DB.name}.sam -t ${task.cpus} ${params.SNAP_OPTIONS}
+
+    echo "Removing temporary files"
+    rm R1.fastq R2.fastq
+    
+done
 """
 }
 
@@ -334,15 +415,12 @@ process snap_single {
 
     // Define the input files
     input:
-      tuple val(base), file(r1)
+      file r1_list
       each file(SNAP_DB)
 
     // Define the output files
     output:
-      tuple val(base), file("${base}_${SNAP_DB.name}.sam")
-
-    // Clean up the ephemeral working space (not the persistent file storage)
-   
+      file("*${SNAP_DB.name}.sam")
 
     // Code to be executed inside the task
     script:
@@ -354,14 +432,26 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-echo "Aligning ${r1}"
+echo "Aligning ${r1_list}"
 
-# Decompress the input files
-echo "Decompressing ${r1}"
-gunzip -c ${r1} > R1.fastq && rm ${r1}
+# Iterate over each of the input files
+for r1 in ${r1_list}; do
 
-echo "Running SNAP"
-snap-aligner single ${SNAP_DB} R1.fastq -o ${base}_${SNAP_DB.name}.sam -t ${task.cpus} ${params.SNAP_OPTIONS}
+    # Get the sample name from the file name
+    sample_name=\$(echo \${r1} | sed 's/.R1.fastq.gz//')
+    echo "Processing \$sample_name"
+
+    # Decompress the input files
+    echo "Decompressing \${r1}"
+    gunzip -c \${r1} > R1.fastq && rm \${r1}
+
+    echo "Running SNAP"
+    snap-aligner single ${SNAP_DB} R1.fastq -o \${sample_name}__${SNAP_DB.name}.sam -t ${task.cpus} ${params.SNAP_OPTIONS}
+
+    echo "Removing temporary files"
+    rm R1.fastq
+
+done
 """
 }
 
@@ -382,9 +472,6 @@ process collect_snap_results {
     output:
       tuple val(base), file("${base}.sam")
 
-    // Clean up the ephemeral working space (not the persistent file storage)
-   
-
     // Code to be executed inside the task
     script:
       """
@@ -395,13 +482,14 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-echo "Checking that all files were staged correctly"
+echo "Merging SAM files for ${base}"
 for fp in ${sam_list}; do
-    [ -s \$fp ]
-done
 
-echo "Concatenating files"
-cat ${sam_list} > ${base}.sam
+    cat \${fp}
+    rm \${fp}
+
+done > ${base}.sam
+
 """
 }
 
