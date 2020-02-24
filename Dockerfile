@@ -4,6 +4,7 @@ RUN apt update && \
     apt install -y python3 ncbi-blast+ && \
     apt install -y python-biopython \
                    python3-pip \
+                   python3-pysam \
                    wget && \
     pip3 install biopython \
                  ete3 \

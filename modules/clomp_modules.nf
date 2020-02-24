@@ -115,20 +115,20 @@ sample_name=\$(echo ${r1} | sed 's/.R1.fastq.gz//')
 echo "Starting the alignment of ${r1} and ${r2}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
-    --threads 16 \
+    --threads ${task.cpus} \
     -x ${params.BWT_DB_PREFIX} \
     -q \
     -1 <(gunzip -c ${r1}) \
-    -2 <(gunzip -c ${r2}) \
-    -S \${sample_name}_mappedSam 2>&1 | \
+    -2 <(gunzip -c ${r2}) |\
+    samtools view -Sb - > \${sample_name}_mappedBam 2>&1 | \
     tee -a \${sample_name}.log
 
 # Delete the input R1 and R2 so that we don't have to worry
 # that they are being used (in error) as outputs
 rm ${r1} ${r2}
 
-echo "Extracting the BAM alignments"
-samtools view -Sb -@ 16 \${sample_name}_mappedSam > \${sample_name}_mappedBam
+#echo "Extracting the BAM alignments"
+#samtools view -Sb -@ 16 \${sample_name}_mappedSam > \${sample_name}_mappedBam
 
 # Extract the R1
 echo "Extracting the R1 FASTQ"
@@ -185,8 +185,8 @@ bowtie2 \
     --threads ${task.cpus} \
     -x ${params.BWT_DB_PREFIX} \
     -q \
-    -U <(gunzip -c ${r1}) \
-    -S \${sample_name}_mappedSam 2>&1 | \
+    -U <(gunzip -c ${r1}) | \
+    samtools view -Sb - > \${sample_name}_mappedBam 2>&1 | \
     tee -a \${sample_name}.log
 
 # Delete the input R1 so that we don't have to worry
@@ -194,8 +194,8 @@ bowtie2 \
 rm ${r1}
 
 # echo ${workDir} > \${sample_name}.log
-echo "Extracting the BAM alignments"
-samtools view -Sb -@ 16 \${sample_name}_mappedSam > \${sample_name}_mappedBam
+#echo "Extracting the BAM alignments"
+#samtools view -Sb -@ 16 \${sample_name}_mappedSam > \${sample_name}_mappedBam
 
 # Extract the R1
 echo "Extracting the FASTQ"
@@ -420,7 +420,7 @@ process snap_single {
 
     // Define the output files
     output:
-      file("*${SNAP_DB.name}.sam")
+      file("*${SNAP_DB.name}.bam")
 
     // Code to be executed inside the task
     script:
@@ -446,7 +446,7 @@ for r1 in ${r1_list}; do
     gunzip -c \${r1} > R1.fastq && rm \${r1}
 
     echo "Running SNAP"
-    snap-aligner single ${SNAP_DB} R1.fastq -o \${sample_name}__${SNAP_DB.name}.sam -t ${task.cpus} ${params.SNAP_OPTIONS}
+    snap-aligner single ${SNAP_DB} R1.fastq  -t ${task.cpus} ${params.SNAP_OPTIONS} -o -bam - > \${sample_name}__${SNAP_DB.name}.bam
 
     echo "Removing temporary files"
     rm R1.fastq
@@ -462,15 +462,15 @@ process collect_snap_results {
     maxRetries 3
     
     // Define the Docker container used for this step
-    container "ubuntu:18.04"
+    container "quay.io/fhcrc-microbiome/bowtie2:bowtie2-2.2.9-samtools-1.3.1"
 
     // Define the input files
     input:
-      tuple val(base), file(sam_list)
+      tuple val(base), file(bam_list)
 
     // Define the output files
     output:
-      tuple val(base), file("${base}.sam")
+      tuple val(base), file("${base}.bam")
 
     // Code to be executed inside the task
     script:
@@ -483,12 +483,9 @@ set -e
 ls -lahtr
 
 echo "Merging SAM files for ${base}"
-for fp in ${sam_list}; do
+# echo ${bam_list}
+ samtools merge ${base}.bam ${bam_list} 
 
-    cat \${fp}
-    rm \${fp}
-
-done > ${base}.sam
 
 """
 }
@@ -500,11 +497,11 @@ process CLOMP_summary {
     maxRetries 3
     
     // Define the Docker container used for this step
-    container "quay.io/fhcrc-microbiome/clomp:v0.1.2"
+    container "image_with_pysam:second"
 
     // Define the input files
     input:
-      tuple val(base), file(sam_list), file(log_file)
+      tuple val(base), file(bam_list), file(log_file)
       file BLAST_CHECK_DB
       file "kraken_db/"
     output:
@@ -523,6 +520,7 @@ process CLOMP_summary {
 
 import ast 
 import subprocess
+import pysam
 import glob
 import argparse 
 import os
@@ -532,6 +530,8 @@ from ete3 import NCBITaxa
 import timeit
 from collections import defaultdict
 ncbi = NCBITaxa()
+
+# print("AAAAHHHHASDLKFJASLKFJLAKSDJFLAKSJFLKJ")
 
 
 # Make a function to run a shell command and catch any errors
@@ -687,7 +687,7 @@ def build_sams(input_list):
 			if line_list[3] == 'S' and int(line_lsit[2]) >= ${params.MIN_READ_CUTOFF}:
 				lineage = ncbi.get_lineage(line_list[4])
 				# filter out any taxids that have lineages that include anything from the blacklist
-				if not any(x in ${params.SAM_NO_BUILD_LIST} for x in lineage):
+				if not any(x in "${params.SAM_NO_BUILD_LIST}" for x in lineage):
 					taxid_to_assemble.append(line_list[4])
 		
 		# go through each taxid that we pulled in the last loop and parse the sam file for the accession numbers of the entries that each read aligned to
@@ -759,44 +759,47 @@ base_start_time = timeit.default_timer()
 read_to_taxids_map = {}
 reads_seq_map = {}
 #For every SAM file for a given sample, read in the SAM files.
-for sam_file in glob.glob('*.sam'):
-    file_start_time = timeit.default_timer()
-    print('Reading in ' + sam_file)
-    
-    #For every line in the SAM file
-    line_count = 0
-    for line in open(sam_file):
-        line_count += 1
-        #Skip the first three lines, which are header
-        if line_count > 3:
-            #For each read, pull the SAM information for that read.
-            line_list = line.split('\t')
-            current_read = line_list[0]
-            snap_assignment_of_current_read = line_list[2]
-            sequence_of_current_read = line_list[9]
-            
-            #If read is unassigned, call it unassigned and throw it out.  Unassigned reads do not have an edit distance, assign it 100.
-            if snap_assignment_of_current_read == '*':
-                # higher edit distance than anything else makes sure this gets parsed out 
-                current_read_taxid = [snap_assignment_of_current_read,100]
-            else:
-                #Pull the taxid and the edit distance from each line.
-                current_read_taxid = [snap_assignment_of_current_read.split('#')[-1],
-                    int(line_list[12].split(':')[-1])]
-            #Create map for each sample.
-            #The key in each map is the read ID and the values are lists.
-            #For every read, append a list of taxid and edit distance from each SAM file.
-            if current_read in read_to_taxids_map:
-                read_to_taxids_map[current_read].append(current_read_taxid)
-            else: 
-                # if this is the first time we've seen this read add the sequence to the list
-                # and initialize the read -> taxid_list map  
-                read_to_taxids_map[current_read] = [current_read_taxid]
-                # also store the read and the sequence, this does need to be in a map 
-                reads_seq_map[current_read] = sequence_of_current_read
+file_start_time = timeit.default_timer()
+bam_filename = "${bam_list}"
+print(bam_filename)
+bam_file = pysam.AlignmentFile("${bam_list}", "rb")
+# print('Reading in ' + "${base}")
 
-    file_runtime = str(timeit.default_timer() - file_start_time)
-    print('Reading in file ' + sam_file + ' took ' + file_runtime)
+#For every line in the BAM file
+line_count = 0
+for line in bam_file.fetch(until_eof=True):
+    line = line.tostring(bam_file)
+    line_count += 1
+    if line_count > 0:
+        #For each read, pull the SAM information for that read.
+        line_list = line.split('\t')
+        current_read = line_list[0]
+        snap_assignment_of_current_read = line_list[2]
+        sequence_of_current_read = line_list[9]
+        
+        #If read is unassigned, call it unassigned and throw it out.  Unassigned reads do not have an edit distance, assign it 100.
+        if snap_assignment_of_current_read == '*':
+            # higher edit distance than anything else makes sure this gets parsed out 
+            current_read_taxid = [snap_assignment_of_current_read,100]
+        else:
+            #Pull the taxid and the edit distance from each line.
+            print(snap_assignment_of_current_read)
+            current_read_taxid = [snap_assignment_of_current_read.split('#')[-1],
+                int(line_list[15].split(':')[-1])]
+        #Create map for each sample.
+        #The key in each map is the read ID and the values are lists.
+        #For every read, append a list of taxid and edit distance from each SAM file.
+        if current_read in read_to_taxids_map:
+            read_to_taxids_map[current_read].append(current_read_taxid)
+        else: 
+            # if this is the first time we've seen this read add the sequence to the list
+            # and initialize the read -> taxid_list map  
+            read_to_taxids_map[current_read] = [current_read_taxid]
+            # also store the read and the sequence, this does need to be in a map 
+            reads_seq_map[current_read] = sequence_of_current_read
+
+file_runtime = str(timeit.default_timer() - file_start_time)
+# print('Reading in file ' + sam_file + ' took ' + file_runtime)
 
 per_base_runtime = str(timeit.default_timer() - base_start_time)
 print("${base}" + ' took ' + per_base_runtime + ' in total to read')
