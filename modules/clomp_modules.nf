@@ -497,7 +497,7 @@ process CLOMP_summary {
     maxRetries 3
     
     // Define the Docker container used for this step
-    container "image_with_pysam:second"
+    container "docker pull quay.io/fhcrc-microbiome/clomp:v0.1.3"
 
     // Define the input files
     input:
