@@ -11,7 +11,7 @@ params.SNAP_OPTIONS = false
 params.BLAST_CHECK = false
 params.WRITE_UNIQUES = false
 params.BLAST_EVAL = false
-params.ADD_HOST_FILTERED_TO_REPORT = false
+params.ADD_HOST_FILTERED_TO_REPORT = true
 params.HOST_FILTER_TAXID = 9606
 params.H_STRICT = false
 params.H_TAXID = 9606
@@ -484,7 +484,9 @@ ls -lahtr
 
 echo "Merging SAM files for ${base}"
 # echo ${bam_list}
- samtools merge ${base}.bam ${bam_list} 
+# Sam file of just headers to use for samtools merge so we only have to write sam headers once 
+ samtools view -h ${bam_list[1]} > headers.sam
+ samtools merge -h headers.sam ${base}.bam ${bam_list} 
 
 
 """
