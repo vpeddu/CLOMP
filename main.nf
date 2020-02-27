@@ -42,7 +42,7 @@ def helpMessage() {
                 Comma-delimited list of SNAP indexed references
       --SNAP_OPTIONS
                 Options used to run SNAP (must enclose in quotes)
-                default: -mrl 65 -d 9 -h 30000 -om 1 -omax 20
+                default: -mrl 65 -d 9 -h 30000 -om 1 -omax 20 -map
       --SNAP_BATCHSIZE
                 Number of samples to align in parallel over each SNAP index shard, in a batch
       --HOST_FILTER_FIRST
