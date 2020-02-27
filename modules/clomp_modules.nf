@@ -446,7 +446,7 @@ for r1 in ${r1_list}; do
     gunzip -c \${r1} > R1.fastq && rm \${r1}
 
     echo "Running SNAP"
-    snap-aligner single ${SNAP_DB} R1.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -map -o -bam - > \${sample_name}__${SNAP_DB.name}.bam
+    snap-aligner single ${SNAP_DB} R1.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -pre -map -o -bam - > \${sample_name}__${SNAP_DB.name}.bam
 
     echo "Removing temporary files"
     rm R1.fastq
