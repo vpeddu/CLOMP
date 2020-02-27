@@ -94,7 +94,7 @@ flag<-function(flagname,cutoff,df){
 # Function to flag columns where water control has RPM > cutoff value 
 water_flag<-function(cutoff,df){ 
   df[,(ncol(df) + 1)] <- NA
-  colnames(df)[ncol(df)]<-'WATER_FLAG'
+  colnames(df)[ncol(df)]<-'WATER_PASS'
   water_cols<-which(grepl('*H2O*', colnames(df)))
   for(i in 1:nrow(df)){ 
     temp_names<-c()
@@ -110,14 +110,17 @@ water_flag<-function(cutoff,df){
       }
     #print(j)  
     temp_ratio<-df[i,j] / df[i,water_cols[1]]
-    temp_list<-append(temp_ratio, temp_list) 
+    if(temp_ratio > cutoff){ 
+      temp_list<-append(j-3, temp_list)
+      }
+    #temp_list<-append(temp_ratio, temp_list) 
     #temp_names<-append(colname
       }
     }
     #print(temp_list)
-    if(any(temp_list < cutoff )){ 
-      df[i,(ncol(df))]<-paste0(which(temp_list < cutoff),collapse=', ' )
-    }
+    #if(any(temp_list < cutoff )){ 
+      df[i,(ncol(df))]<-paste0((temp_list),collapse=', ' )
+    #}
   }
   return(df)
 }

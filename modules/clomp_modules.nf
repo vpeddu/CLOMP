@@ -421,6 +421,7 @@ process snap_single {
     // Define the output files
     output:
       file("*${SNAP_DB.name}.bam")
+       // file(snap_cmd.sh)
 
     // Code to be executed inside the task
     script:
@@ -434,6 +435,8 @@ ls -lahtr
 
 echo "Aligning ${r1_list}"
 
+echo "snap-aligner " | tr -d "\n" > snap_cmd.sh
+
 # Iterate over each of the input files
 for r1 in ${r1_list}; do
 
@@ -443,15 +446,21 @@ for r1 in ${r1_list}; do
 
     # Decompress the input files
     echo "Decompressing \${r1}"
-    gunzip -c \${r1} > R1.fastq && rm \${r1}
-
-    echo "Running SNAP"
-    snap-aligner single ${SNAP_DB} R1.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o -bam - > \${sample_name}__${SNAP_DB.name}.bam
+    gunzip -c \${r1} > \${sample_name}.fastq && rm \${r1}
+    filename=\${sample_name}__${SNAP_DB.name}.bam
+    temp_cmd=\$(echo "single ${SNAP_DB} \${sample_name}.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o \$filename")
+    temp_cmd="\$temp_cmd"" ,  "
+    echo \$temp_cmd | tr "\n" " ">> snap_cmd.sh
+    
+    #echo \$cmd
+    #echo "Running SNAP"
+    #snap-aligner single ${SNAP_DB} R1.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o -bam - `> \${sample_name}__${SNAP_DB.name}.bam`
 
     echo "Removing temporary files"
-    rm R1.fastq
-
+    # rm R1.fastq
 done
+bash snap_cmd.sh
+
 """
 }
 
@@ -482,7 +491,7 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
-echo "Merging SAM files for ${base}"
+echo "Merging BAM files for ${base}"
 # echo ${bam_list}
 # Sam file of just headers to use for samtools merge so we only have to write sam headers once 
  samtools view -h ${bam_list[1]} > headers.sam
