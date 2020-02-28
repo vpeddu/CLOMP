@@ -21,7 +21,6 @@ taxa_detect<-function(df, taxid){
 T1_RPM<-c()
 MS2_RPM<-c()
 for(i in 1:length(files)){ 
-  progress(i, length(files))
   temp_tsv<-read.csv(files[i], sep = '\t', col.names = c('percent_clade_reads', 'number_clade_reads_rooted_at_taxon','number_clade_reads_this_taxon', 'taxa', 'taxid', 'name'), header = FALSE)
   total_reads = temp_tsv$number_clade_reads_rooted_at_taxon[2] + temp_tsv$number_clade_reads_rooted_at_taxon[1]
   temp_tsv$RPM = temp_tsv$number_clade_reads_this_taxon  / (total_reads / 1e6)
@@ -111,7 +110,7 @@ water_flag<-function(cutoff,df){
     #print(j)  
     temp_ratio<-df[i,j] / df[i,water_cols[1]]
     if(temp_ratio > cutoff){ 
-      temp_list<-append(j-3, temp_list)
+      temp_list<-append(colnames(df)[j], temp_list)
       }
     #temp_list<-append(temp_ratio, temp_list) 
     #temp_names<-append(colname
