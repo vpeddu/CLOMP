@@ -91,7 +91,7 @@ flag<-function(flagname,cutoff,df){
   }
 
 # Function to flag columns where water control has RPM > cutoff value 
-water_flag<-function(cutoff,df){ 
+water_flag<-function(ratio_cutoff,no_water_cutoff,df){ 
   df[,(ncol(df) + 1)] <- NA
   colnames(df)[ncol(df)]<-'WATER_PASS'
   water_cols<-which(grepl('*H2O*', colnames(df)))
@@ -104,12 +104,16 @@ water_flag<-function(cutoff,df){
       next
     }
     else { 
-      if(df[i,water_cols[1]] < 1){ 
+      if(df[i,water_cols[1]] < 1){
+        if(df[i,j] > no_water_cutoff){
+          temp_list<-append(colnames(df)[j], temp_list)
+          next
+        }
         next
       }
     #print(j)  
     temp_ratio<-df[i,j] / df[i,water_cols[1]]
-    if(temp_ratio > cutoff){ 
+    if(temp_ratio > ratio_cutoff){ 
       temp_list<-append(colnames(df)[j], temp_list)
       }
     #temp_list<-append(temp_ratio, temp_list) 
@@ -125,8 +129,18 @@ water_flag<-function(cutoff,df){
 }
 
 
-DNA_df_flag<-water_flag(10,DNA_df)
-RNA_df_flag<-water_flag(10,RNA_df)
+DNA_df_flag<-water_flag(10,1,DNA_df)
+DNA_DF_ratio<-DNA_df_flag
+
+#need this in a loop in case water = 0 
+#get total sample list from ederlyn to figure out what's actually in the samples and if we really found them 
+DNA_DF_ratio[,c(3:(ncol(DNA_DF_ratio)-1))]<-DNA_df_flag[,c(3:(ncol(DNA_df_flag)-1))] / DNA_df_flag[,which(grepl('*H2O*', colnames(DNA_df_flag)))[1]]
+for(i in 3:ncol(DNA_DF_ratio)){ 
+  DNA_DF_ratio[,i]<-DNA_DF_ratio[,i] / DNA_df_flag
+  
+  }
+
+RNA_df_flag<-water_flag(10,1,RNA_df)
 
 
 
