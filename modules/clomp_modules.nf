@@ -182,11 +182,11 @@ sample_name=\$(echo ${r1} | sed 's/.R1.fastq.gz//')
 echo "Starting the alignment of ${r1}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
-    --threads ${task.cpus} \
+    --threads 36 \
     -x ${params.BWT_DB_PREFIX} \
     -q \
     -U <(gunzip -c ${r1}) | \
-    samtools view -Sb - > \${sample_name}_mappedBam 2>&1 | \
+    samtools view -@ 4 -Sb - > \${sample_name}_mappedBam 2>&1 | \
     tee -a \${sample_name}.log
 
 # Delete the input R1 so that we don't have to worry
