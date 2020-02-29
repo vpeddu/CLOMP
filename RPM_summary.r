@@ -5,8 +5,11 @@ if (!require("xlsx")) {
   library('xlsx')
   }
 
+args = commandArgs(trailingOnly=TRUE)
 
-setwd('/Users/gerbix/Documents/vikas/scratch/respo')
+path<-args[1]
+
+setwd(path)
 
 files<-list.files(pattern = '*.tsv')
 
