@@ -479,7 +479,7 @@ process collect_snap_results {
 
     // Define the output files
     output:
-      tuple val(base), file("${base}.bam")
+      tuple val(base), file("${base}.sam")
 
     // Code to be executed inside the task
     script:
@@ -494,8 +494,9 @@ ls -lahtr
 echo "Merging BAM files for ${base}"
 # echo ${bam_list}
 # Sam file of just headers to use for samtools merge so we only have to write sam headers once 
- samtools view -h ${bam_list[1]} > headers.sam
- samtools merge -h headers.sam ${base}.bam ${bam_list} 
+# samtools view -h ${bam_list[1]} > headers.sam
+for i in ${bam_list}; do samtools view \$i >> ${base}.sam; done
+# samtools merge -h headers.sam ${base}.bam ${bam_list} 
 
 
 """
@@ -771,16 +772,19 @@ read_to_taxids_map = {}
 reads_seq_map = {}
 #For every SAM file for a given sample, read in the SAM files.
 file_start_time = timeit.default_timer()
-bam_filename = "${bam_list}"
-print(bam_filename)
-bam_file = pysam.AlignmentFile("${bam_list}", "rb")
+#bam_filename = "${bam_list}"
+#print(bam_filename)
+#bam_file = pysam.AlignmentFile("${bam_list}", "rb")
 # print('Reading in ' + "${base}")
 
+bam_file = "${bam_list}"
+print(bam_file)
 #For every line in the BAM file
 line_count = 0
-for line in bam_file.fetch(until_eof=True):
-    line = line.tostring(bam_file)
+for line in  open(bam_file):
+    #line = line.tostring(bam_file)
     line_count += 1
+    print(line)
     if line_count > 0:
         #For each read, pull the SAM information for that read.
         line_list = line.split('\t')
@@ -796,7 +800,7 @@ for line in bam_file.fetch(until_eof=True):
             #Pull the taxid and the edit distance from each line.
             print(snap_assignment_of_current_read)
             current_read_taxid = [snap_assignment_of_current_read.split('#')[-1],
-                int(line_list[15].split(':')[-1])]
+                int(line_list[17].split(':')[-1])]
         #Create map for each sample.
         #The key in each map is the read ID and the values are lists.
         #For every read, append a list of taxid and edit distance from each SAM file.
