@@ -45,9 +45,9 @@ This pipeline can run on any operating system capable of running `Nextflow`. How
 
 Installation instructions for `Nextflow` can be found here: https://www.nextflow.io/docs/latest/getstarted.html. It is also avaialbe via `Anaconda` using "conda install -c bioconda nextflow"
 
-### 3. SNAP Index to NT.
-#### Approximate time: Setup ~ 2 hours, Index build ~3 days (might be MUCH longer)
-`SNAP` requires that you be able to load the whole database into RAM. The final built database for NT is a bit less than 4TB in size. We have split NT into 14 different chunks and built an index for each of these (each of these indexes is about 198Gb once built). If you have less RAM then you'll need to make more chunks, if your RAM usage starts paging during the index build it probably won't finish. Our databases are downloadable here: <database link>  
+### NT SNAP index build.
+
+`SNAP` requires that you be able to load the whole database into RAM. The final built database for NT is a bit less than 4TB in size. We have split NT into 14 different chunks and built an index for each of these (each of these indexes is about 198Gb once built). If you have less RAM then you'll need to make more chunks, if your RAM usage starts paging during the index build it probably won't finish. Our databases are downloadable here: <database link>. 
 
 ##### Building a new NT database: 
 
@@ -72,6 +72,26 @@ SNAP will potentially report multiple alignments for each read for each database
 The other tiebreaking options that are currently included are `90` and `oneoff`. 
  * 90: The most specific taxid shared between ~90% of the remaining alignments is returned
  * oneoff: If there is not more than one other taxid assigned, call read most common taxid, otherwise intersect and pick most specific shared taxid.  Essentially, one weird/bad assignment cannot define/determine the tree intersection.
+
+### Test data run script 
+Test data is provided in the `test_data` folder to confirm the pipeline is installed and runnable. The following script should run when executed from the root of the `CLOMP` repository folder: 
+
+     NXF_ANSI_LOG=false NXF_VER=20.01.0 nextflow run main.nf \
+     -profile testing \
+     --INPUT_FOLDER test_data/ \
+     --INPUT_SUFFIX .fastq.gz  \
+     --ENTREZ_EMAIL vpeddu@uw.edu \
+     --OUTDIR test_data/out/  \
+     -work-dir test_data/work/ \
+     --SNAP_INDEXES "test_data/test_db_1/,test_data/test_db_2/,test_data/test_db_3/" \
+     --TRIMMOMATIC_OPTIONS ":2:30:10 SLIDINGWINDOW:4:20"
+     --TRIMMOMATIC_JAR_PATH test_data/trimmomatic-0.38.jar \
+     -with-docker ubuntu:18.04 \
+     --KRAKEN_DB_PATH test_data/kraken_db/ 
+     --BWT_DB_LOCATION test_data/bt2/ \
+     --TRIMMOMATIC_ADAPTER_PATH test_data/adapters.fa \
+     --BWT_DB_PREFIX human_ref
+
 
 ### All arguments: 
 
