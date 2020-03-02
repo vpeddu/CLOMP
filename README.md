@@ -88,7 +88,7 @@ The other tiebreaking options that are currently included are `90` and `oneoff`.
       * --HOST_FILTER_FIRST If specified, perform host filtering prior to trimming
       * --SECOND_PASS Should we do a more sensitive second pass of host filtering? (default: false)
       * --TRIMMOMATIC_OPTIONS Options used to run Trimmomatic (default: ':2:30:10 HEADCROP:10 SLIDINGWINDOW:4:20 CROP:65 MINLEN:65')
-     * --TRIMMOMATIC_JAR_PATH Path to Trimmomatic executable (default: "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/trimmomatic-0.38.jar")
+      * --TRIMMOMATIC_JAR_PATH Path to Trimmomatic executable (default: "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/trimmomatic-0.38.jar")
       * --TRIMMOMATIC_ADAPTER_PATH Path to Trimmomatic adapters (default: "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/adapters.fa")
       * --BWT_DB_PREFIX Prefix for the files in the host genome directory (default: hg38)
       * --BWT_DB_LOCATION Host genome directory (default: s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/hg38/)
