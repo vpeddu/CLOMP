@@ -15,39 +15,31 @@ A entirely open source, fast, accurate, multi-sample and highly configurable end
 
 # Introduction
 
-This is the publically available source code and documentation for CLOMP - UW Virology's fully functional metagenomic pipeline. CLOMP takes raw sequencing reads straight off the sequencer and taxonomically assigns as many reads as possible. While CLOMP is currently relatively difficult to set up, once properly configured you can get accurate taxonomical classification of an entire MiSeq run overnight. 
+This is the publicly available source code and documentation for CLOMP - UW Virology's fully functional metagenomic pipeline. CLOMP takes raw sequence read files and taxonomically assigns as many reads as possible. We have attempted to streamline the setup for both local and cloud use as much as possible by writing the pipeline in `Nextflow`.
 
 Broadly the execution of the pipeline is broken down into four steps:
 ### 1. Read quality filtering and adapter trimming 
 
-First, we take all reads and remove adapter and low quality sequences from the ends of the reads, and throw out reads that are generally low quality or too short. This is done using [Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic) and a custom adapter file. 
+Adapter adn quality trimming is done using [Trimmomatic](http://www.usadellab.org/cms/?page=trimmomatic) with a pre-made comprehensive Illumina adapter file. The parameters for trimming are adjustable via the  `--TRIMMOMATIC_OPTIONS` flag. 
 
 ### 2. Host read subtraction
 
-Next, reads are aligned to a host genome and those that match are removed from further analysis. This pipeline is primarily designed for human clinical samples so by default we align to the Human Genome (hg38 p.12). Depending on the sample type, this may remove almost all reads. This is great because it allows the rest of the pipeline to run relatively quickly. However, with very little effort you can configure CLOMP to filter out almost any host genome (as long as it's actually been sequenced). Host subtraction is performed with [bowtie2](https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.4.3).
+Trimmed reads are aligned to a host genome using [bowtie2](https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.4.3). Aligned reads are removed from further analysis in the interest of speed and computational cost. This pipeline is primarily designed for human clinical samples so by default we align to the Human Genome (HG38). Depending on the sample type, this may remove almost all reads. To use a different host genome, provide a path to a folder containing the built `Bowtie2` index files using the flag `--BWT_DB_LOCATION`, and the `Bowtie2` prefix for the files with `--BWT_DB_PREFIX `
 
 ### 3. Alignment of every read to NT
 
-After we've got good quality non-host reads we take all remaining reads and align them to NCBI's NT. This is performed with the lovely tool [SNAP](http://snap.cs.berkeley.edu/). While there are a lot of important differences between SNAP and BLAST, you can basically just think of this step as running a super fast blast search of every read against NT. The fact that we align all reads to NT allows us to accurately place many more reads than approaches that use a smaller database. 
+All remaining reads are aligned to the NCBI NT database using the [SNAP](http://snap.cs.berkeley.edu/) aligner, chosen for its speed and accuracy.`SNAP` alignment options can be modified using the `--SNAP_OPTIONS` flag. Details on building the SNAP database are available below. 
 
 ### 4. Tiebreaking and visualization
 
-Finally we give each read one taxonomical assignment. Think of this like manually scrolling through some blast results and determining the ultimate origin of each read. Of course, reads that have highly conserved sequence (like ribosomal RNA) cannot be accurately placed at the species level. A big part of the tiebreaking step is placing each read at the most specific taxonomical description that we can be sure of. For example, if a read is aligning super well to both E. coli and Pseudomonas, then we can't say for sure the species from which the read came, but we can be pretty sure it's a Proteobacteria. Once this has been done for every read the final results get packed up for consumption with the amazing visualization tool [Pavian](https://github.com/fbreitwieser/pavian).
-
-Additional scripts are included for some optional steps, like pulling all reads aligning at or below a given taxa as well as generating coverage maps.
+This step taxonomically classifies each read based on the previous `SNAP` alignment to the NT database. The custom tiebreaking logic amalgamates all taxa the read aligned to, and assigns it to the lowesst common ancestor possible. This may be at any level of phylogeny (species, genus, etc). The output `.tsv` files can be visualized using [Pavian](https://github.com/fbreitwieser/pavian).
 
 # Installation
 ## Required System Specs
-Linux OS (This can theoretically work on a Mac but **do yourself a favor and don't**).
-
-~3Tb of hard drive space. This can be on discontinuous drives. This space is required just for holding your indexes and programs, so if you want to actually do processing and save the output for a sequencing run you'll need more hard drive space to hold your input data.
-
-Between 32 and 5000 Gigabytes of RAM. The more RAM you have the quicker this will go. This was originally developed with 256Gb RAM but I've also been able to successfully configure this pipeline on an old iMac with 16 cores and 32Gb of RAM. (More on that later) 
-
-An internet connection is required to download and install tools and databases as well as for automatic alignment of results.
+This pipeline can run on any operating system capable of running `Nextflow`. However, in our experience the hardware specifications required are largely determined by the size of your `SNAP` databases. To use our pre-built databases, at a minimum 2.5tb of disk space and 244gb of ram are required. 
 
 ## Installation and setup
-The installation of CLOMP itself is as simple as downloading it to your computer - functionally it's just a wrapper for other programs. The first and hardest step of this will be configuring and setting up all the other programs and their associated databases. Once that's done you have to change the configuration file CLOMP.ini to reflect the location of your tools and databases, then you need to add the main script to the PATH and you'll be good to go. This guide tries as hard as possible to make this process accessible but you will be immensely helped if you can set up and run bowtie2, snap, and Trimmomatic on your own without problems. However, once you've got all the dependencies installed correctly pretty much all you have to do is change a few lines of code to point to these and then you'll be good to go. 
+`CLOMP` was built with portability and modularity in mind. As such, all that is required is the latest version of `Nextflow` to run the pipeline, and `Docker` to fetch the required images. If you would like to use our databases, `AWScli` is also required to download those. Please note that If using our databases, the first run will be extremely slow as the databases are large and will require time to download. 
 
 ### The easy dependencies
 #### Approximate time: <5 minutes (these are already installed on a lot of systems)
