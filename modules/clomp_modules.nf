@@ -338,9 +338,9 @@ echo "Masking ${r1}"
 bbduk.sh \
     in=INPUT.${r1} \
     out=${r1} \
-    entropy=0.5 \
+    entropy=0.7 \
     entropywindow=50 \
-    entropyk=5
+    entropyk=4
 """
 }
 
