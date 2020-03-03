@@ -27,7 +27,7 @@ Adapter adn quality trimming is done using [Trimmomatic](http://www.usadellab.or
 
 Trimmed reads are aligned to a host genome using [bowtie2](https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.4.3). Aligned reads are removed from further analysis in the interest of speed and computational cost. This pipeline is primarily designed for human clinical samples so by default we align to the Human Genome (HG38). Depending on the sample type, this may remove almost all reads. To use a different host genome, provide a path to a folder containing the built `Bowtie2` index files using the flag `--BWT_DB_LOCATION`, and the `Bowtie2` prefix for the files with `--BWT_DB_PREFIX `
 
-### 3. Alignment of every read to NT
+### 3. Alignment to NT
 
 All remaining reads are aligned to the NCBI NT database using the [SNAP](http://snap.cs.berkeley.edu/) aligner, chosen for its speed and accuracy.`SNAP` alignment options can be modified using the `--SNAP_OPTIONS` flag. Details on building the SNAP database are available below. 
 
