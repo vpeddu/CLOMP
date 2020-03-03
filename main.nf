@@ -72,7 +72,7 @@ def helpMessage() {
       --BLAST_CHECK_DB
                 Database used to check results with BLAST (default: None)
       --FILTER_LIST
-                List of taxids to filter from tiebreaking (default: "[12908,28384,48479]")
+                List of taxids to filter from tiebreaking (default: "[12908,28384,48479,4118]")
       --KRAKEN_DB_PATH
                 Path to Kraken database (default: "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/kraken_db/")
       --H_STRICT
