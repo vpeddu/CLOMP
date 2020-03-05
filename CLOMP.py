@@ -58,7 +58,7 @@ def parse_ini(ini_path):
 				THREADS = val
 			elif var == 'DEDUPLICATE':
 				global DEDUPLICATE
-				DEDUPLICATE = val
+				DEDUPLICATE = ast.literal_eval(val)
 			elif var == 'BASE_DELIMITER':
 				global BASE_DELIMITER
 				BASE_DELIMITER = val
