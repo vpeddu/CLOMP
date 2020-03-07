@@ -10,7 +10,7 @@ if (!require("Rsamtools")) {
 }
 if (!require("data.table")) { 
   install.packages("data.table")
-  library('Rsamtools')
+  library('data.table')
 }
 if (!require("tidyr")) { 
   install.packages("tidyr")
@@ -35,7 +35,8 @@ taxa_detect<-function(df, taxid){
 T1_RPM<-c()
 MS2_RPM<-c()
 for(i in 1:length(files)){ 
-  temp_tsv<-read.csv(files[i], sep = '\t', col.names = c('percent_clade_reads', 'number_clade_reads_rooted_at_taxon','number_clade_reads_this_taxon', 'taxa', 'taxid', 'name'), header = FALSE)
+  print(files[i])
+  temp_tsv<-read.csv(files[i], sep = "\t", col.names = c('percent_clade_reads', 'number_clade_reads_rooted_at_taxon','number_clade_reads_this_taxon', 'taxa', 'taxid', 'name'), header = FALSE)
   total_reads = temp_tsv$number_clade_reads_rooted_at_taxon[2] + temp_tsv$number_clade_reads_rooted_at_taxon[1]
   temp_tsv$RPM = temp_tsv$number_clade_reads_this_taxon  / (total_reads / 1e6)
   temp_tsv$cumulative_RPM<-temp_tsv$number_clade_reads_rooted_at_taxon / (total_reads / 1e6)
@@ -74,102 +75,13 @@ for(i in 1:length(files)){
 
 final_tsv<-final_tsv[complete.cases(final_tsv),]
 
-# QC hardcoded to fail if RPM of T1 or MS2 < 100 
-qc_df<-data.frame(files,T1_RPM,MS2_RPM)
-qc_df$files<-as.character(qc_df$files)
-qc_df$QC<-NA
-for(i in 1:nrow(qc_df)){ 
-  qc_df$files[i]<-strsplit(qc_df$files[i],"_final")[[1]][1]
-  if(any(qc_df[i,c(2:3)] > 100 )){ 
-    qc_df$QC[i]<-'PASS'
-  }
-  else { 
-    qc_df$QC[i]<-'FAIL'
-  }
-}
-
-DNA_df<-final_tsv[,c(1,2,which(grepl('DNA',colnames(final_tsv))))]
-RNA_df<-final_tsv[,c(1,2,which(grepl('RNA',colnames(final_tsv))))]
-
-# Function to add in custom flags later
-flag<-function(flagname,cutoff,df){ 
-  df[,(ncol(df + 1))] <- NA
-  colnames(df)[ncol(df) + 1]<-paste0(flagname)
-  
-  for(i in 1:nrow(df)){ 
-    if(any(df[i,] > cutoff)){ 
-      df[i,(ncol(df)+1)]<-'FLAG'
-    }
-  }
-  return(df)
-}
-
 wb = createWorkbook()
 
-sheet = createSheet(wb, "QC")
+addDataFrame(final_tsv, sheet=sheet, startColumn=1, row.names=FALSE)
 
-addDataFrame(qc_df, sheet=sheet, startColumn=1, row.names=FALSE)
+sheet = createSheet(wb, "RPM values")
 
-sheet = createSheet(wb, "DNA RPM values")
-
-addDataFrame(DNA_df_flag, sheet=sheet, startColumn=1, row.names=FALSE)
-
-sheet = createSheet(wb, "RNA RPM values")
-
-addDataFrame(RNA_df_flag, sheet=sheet, startColumn=1, row.names=FALSE)
-
-# Highlight failed QC rows
-# fo <- Fill(foregroundColor="yellow")
-# cs <- CellStyle(wb, fill=fo)
-# sheets <- getSheets(wb)    
-# sheet <- sheets[["QC"]]  
-# 
-# rows <- getRows(sheet, rowIndex=2:(nrow(qc_df)+1))
-# cells <- getCells(rows, 4)
-# values <- lapply(cells, getCellValue)
-# 
-# highlight <- "test"
-# for (i in names(values)) {
-#   x <- as.character(values[i])
-#   print(x)
-#   if (x == 'FAIL') {
-#     highlight <- c(highlight, i)
-#   }    
-# }
-# highlight <- highlight[-1]
-# 
-# lapply(names(cells[highlight]),
-#        function(ii)setCellStyle(cells[[ii]],cs))
-
-# Highlight water flagged rows in DNA sheet
-# 
-# fo <- Fill(foregroundColor="teal")
-# cs <- CellStyle(wb, fill=fo)
-# sheets <- getSheets(wb)    
-# sheet <- sheets[["DNA RPM values"]]  
-# 
-# rows <- getRows(sheet, rowIndex=1:(nrow(DNA_df_flag)))
-# cells <- getCells(rows, ncol(DNA_df_flag))
-# values <- lapply(cells, getCellValue)
-# 
-# highlight <- "test"
-# for (i in names(values)) {
-#   x <- as.character(values[i])
-#   if (x == 'FLAG') {
-#   print(x)
-#     highlight <- c(highlight, i)
-#   }    
-# }
-# highlight <- highlight[-1]
-# 
-# lapply(names(cells[highlight]),
-#        function(ii)setCellStyle(cells[[ii]],cs))
-
-
-saveWorkbook(wb, "QC_data.xlsx")
-
-
-
+saveWorkbook(wb, "RPM_data.xlsx")
 
 
 
