@@ -75,13 +75,32 @@ for(i in 1:length(files)){
 
 final_tsv<-final_tsv[complete.cases(final_tsv),]
 
+to_remove<-c()
+
+for(i in 1:nrow(final_tsv)){ 
+  if( all(final_tsv[i,3:ncol(final_tsv)] < 10 )){ 
+    to_remove<-append(to_remove, i)
+    }
+  }
+
+zero_removed<-final_tsv[-to_remove,]
+
 wb = createWorkbook()
+
+sheet = createSheet(wb, "RPM < 10")
+
+addDataFrame(zero_removed, sheet=sheet, startColumn=1, row.names=FALSE)
+
+sheet = createSheet(wb, "All RPM values")
 
 addDataFrame(final_tsv, sheet=sheet, startColumn=1, row.names=FALSE)
 
-sheet = createSheet(wb, "RPM values")
 
-saveWorkbook(wb, "RPM_data.xlsx")
+
+saveWorkbook(wb, "RPM_summary.xlsx")
+
+
+
 
 
 
