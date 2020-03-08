@@ -32,8 +32,8 @@ taxa_detect<-function(df, taxid){
   return(temp_rpm)
 }
 
-T1_RPM<-c()
-MS2_RPM<-c()
+
+
 for(i in 1:length(files)){ 
   print(files[i])
   temp_tsv<-read.csv(files[i], sep = "\t", col.names = c('percent_clade_reads', 'number_clade_reads_rooted_at_taxon','number_clade_reads_this_taxon', 'taxa', 'taxid', 'name'), header = FALSE)
@@ -67,13 +67,11 @@ for(i in 1:length(files)){
       colnames(final_tsv)[i+2]<-file_name
     }
   }
-  
-  T1_RPM<-append(T1_RPM,taxa_detect(temp_tsv, 187217))
-  MS2_RPM<-append(MS2_RPM,taxa_detect(temp_tsv, 329852))
 }
 
 
 final_tsv<-final_tsv[complete.cases(final_tsv),]
+colnames(final_tsv)<-c('taxid','name','WA6-UW3', 'WA7-UW4', 'WA4-UW2', 'SC5683', 'WA3-UW1', 'SC5698', 'WA9-UW6', 'WA8-UW5')
 
 to_remove<-c()
 
