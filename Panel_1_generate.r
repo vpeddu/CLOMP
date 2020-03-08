@@ -23,8 +23,6 @@ if (!require("ggplot2")) {
   library('ggplot2')
 }
 
-
-
 RPM_summary<-read.xlsx('/Users/gerbix/Documents/vikas/scratch/pavian_in/RPM_summary.xlsx', sheetIndex = 1)
 
 signifcant_list<-c('1747','480','11216','694009',)
@@ -36,7 +34,6 @@ RVA<-'147711'
 RVC<-'463676'
 
 colnames(RPM_summary)<-c('taxid','name','WA6-UW3', 'WA7-UW4', 'WA4-UW2', 'SC5683', 'WA3-UW1', 'SC5698', 'WA9-UW6', 'WA8-UW')
-
 
 tax_pull<-function(df, tax_class){ 
   keep_list<-which(df$taxid == tax_class)
@@ -55,7 +52,6 @@ HPIV3_df<-tax_pull(RPM_summary, HPIV3)
 CV_df<-tax_pull(RPM_summary, CV)
 RVA_df<-tax_pull(RPM_summary, RVA)
 RVC_df<-tax_pull(RPM_summary, RVC)
-
 
 colors<-c('#003f5c','#444e86','#955196','#dd5182','#ff6e54','#ffa600')
 
