@@ -573,7 +573,7 @@ def tie_break(taxid_list):
 	for id in taxid_list:
 		if id[1] <= best_edit_distance and id != 4558:
 			actual_taxid_list.append(id[0])
-			print(taxid)
+			print(id)
 	#No longer holding edit distances		
 	taxid_list = actual_taxid_list
 	print(taxid_list)
