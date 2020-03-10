@@ -576,7 +576,6 @@ def tie_break(taxid_list):
 			print(id)
 	#No longer holding edit distances		
 	taxid_list = actual_taxid_list
-	#print(taxid_list)
 	lineage_list = []
 	
 	for id in taxid_list:
