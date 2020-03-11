@@ -571,7 +571,7 @@ def tie_break(taxid_list):
 	
 	# Keep taxids that have an edit distance less than the acceptable edit distance defined above 
 	for id in taxid_list:
-		if id[1] <= best_edit_distance and len((id.split('\t')[2]).split('#')) > 1 and ((id.split('\t')[2]).split('#')[1]) != 4558:
+		if id[1] <= best_edit_distance and len((id.split('\\t')[2]).split('#')) > 1 and ((id.split('\\t')[2]).split('#')[1]) != 4558:
 			actual_taxid_list.append(id[0])
 			print(id)
 	#No longer holding edit distances		
