@@ -15,7 +15,7 @@ params.ADD_HOST_FILTERED_TO_REPORT = true
 params.HOST_FILTER_TAXID = 9606
 params.H_STRICT = false
 params.H_TAXID = 9606
-params.FILTER_LIST = "[12908,28384,48479,99802,4558]"
+params.FILTER_LIST = "[12908,28384,48479,99802]"
 params.LOGIC = "strict"
 params.INCLUSION_TAXID = 2759
 params.EXCLUSION_TAXID = 9604
@@ -506,7 +506,7 @@ process CLOMP_summary {
 
     // Retry at most 3 times
     errorStrategy 'retry'
-    maxRetries 3
+    maxRetries 1
     
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/clomp:v0.1.3"
@@ -570,8 +570,11 @@ def tie_break(taxid_list):
 	best_edit_distance = min(score_list) + ${params.EDIT_DISTANCE_OFFSET}
 	
 	# Keep taxids that have an edit distance less than the acceptable edit distance defined above 
+	i = 0
 	for id in taxid_list:
-		if id[1] <= best_edit_distance:
+		i +=1
+		print(i)
+		if id[1] <= best_edit_distance and str(id[0]) != str('4558'):
 			actual_taxid_list.append(id[0])
 	#No longer holding edit distances		
 	taxid_list = actual_taxid_list
