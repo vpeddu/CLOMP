@@ -570,10 +570,12 @@ def tie_break(taxid_list):
 	best_edit_distance = min(score_list) + ${params.EDIT_DISTANCE_OFFSET}
 	
 	# Keep taxids that have an edit distance less than the acceptable edit distance defined above 
+	i = 0
 	for id in taxid_list:
+		i +=1
+		print(i)
 		if id[1] <= best_edit_distance and len((id.split('\\t')[2]).split('#')) > 1 and ((id.split('\\t')[2]).split('#')[1]) != 4558:
 			actual_taxid_list.append(id[0])
-			print(id)
 	#No longer holding edit distances		
 	taxid_list = actual_taxid_list
 	lineage_list = []
