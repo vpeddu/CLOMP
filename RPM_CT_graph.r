@@ -14,7 +14,7 @@ if(!require("vridis")){
 
 
 #PANEL A 
-rpm_ct<-read.xlsx('/Users/gerbix/Documents/vikas/scratch/pavian_in/RPM_CT_values.xlsx', sheetIndex = 1)
+rpm_ct<-read.xlsx('/Users/gerbix/Documents/vikas/scratch/draft_5/RPM_CT_values.xlsx', sheetIndex = 1)
 
 rpm_ct_zero_removed<-rpm_ct[which(rpm_ct$SARS.CoV.2_RPM > 0),]
 
@@ -92,7 +92,7 @@ reads_assembly_plot<-ggplot(reads_assembly_zero_removed, aes(x = reads_assembly_
   #xlim(c(0,max(reads_assembly_zero_removed$RdRp.gene.CT))) 
 reads_assembly_plot
 
-panel <-plot_grid(RPM_CT_plot, reads_assembly_plot, labels = c('A', 'B'), label_size = 12)
+panel <-plot_grid(reads_assembly_plot,RPM_CT_plot, labels = c('A', 'B'), label_size = 12)
 
-ggsave(plot = panel, filename = 'figure_2_draft_5.pdf', height = 5, width = 8)
+ggsave(plot = panel, filename = 'figure_2_draft_6.pdf', height = 5, width = 8)
 
