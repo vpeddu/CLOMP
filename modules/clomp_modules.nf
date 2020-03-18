@@ -182,7 +182,7 @@ sample_name=\$(echo ${r1} | sed 's/.R1.fastq.gz//')
 echo "Starting the alignment of ${r1}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
-    --threads 36 \
+    --threads ${task.cpus} \
     -x ${params.BWT_DB_PREFIX} \
     -q \
     -U <(gunzip -c ${r1}) | \
