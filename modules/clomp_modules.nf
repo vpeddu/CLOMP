@@ -571,9 +571,12 @@ def tie_break(taxid_list):
 	
 	# Keep taxids that have an edit distance less than the acceptable edit distance defined above 
 	i = 0
+	total = len(taxid_list)
 	for id in taxid_list:
-		i +=1
-		print(i)
+		i += 1
+		percent = (i / total) * 100
+		if(percent % 2 == 0):
+			print(percent)
 		if id[1] <= best_edit_distance and str(id[0]) != str('4558'):
 			actual_taxid_list.append(id[0])
 	#No longer holding edit distances		
@@ -907,7 +910,7 @@ if "${params.WRITE_UNIQUES}" == "true":
         f.close()
     
 tie_break_time = str(timeit.default_timer() - tie_break_start)
-print('Tie breaking ' + "${base}" + ' took ' + tie_break_time)
+#print('Tie breaking ' + "${base}" + ' took ' + tie_break_time)
 
 #For each sample, write the Pavian output.
 new_write_kraken("${base}", final_assignment_counts, unass_count)
