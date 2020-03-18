@@ -787,7 +787,7 @@ line_count = 0
 for line in  open(bam_file):
     #line = line.tostring(bam_file)
     line_count += 1
-    print(line)
+    #print(line)
     if line_count > 0:
         #For each read, pull the SAM information for that read.
         line_list = line.split('\t')
@@ -801,7 +801,7 @@ for line in  open(bam_file):
             current_read_taxid = [snap_assignment_of_current_read,100]
         else:
             #Pull the taxid and the edit distance from each line.
-            print(snap_assignment_of_current_read)
+            #print(snap_assignment_of_current_read)
             current_read_taxid = [snap_assignment_of_current_read.split('#')[-1],
                 int(line_list[17].split(':')[-1])]
         #Create map for each sample.
