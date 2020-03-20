@@ -527,16 +527,11 @@ process CLOMP_summary {
 
     // Define the input files
     input:
-      tuple val(base), file(bam_list), file(log_file)
+      tuple val(base), file(bam_file), file(log_file)
       file BLAST_CHECK_DB
       file "kraken_db/"
     output:
       tuple val(base), file("${base}.*.temp_kraken.tsv")  // Final report TSV
-      //file "${log_file}"        // Logfile
-      //file "*unassigned.txt"    //unassigned reads file
-      //file "*assignments.txt"   // assigned reads file
-
-    // Clean up the ephemeral working space (not the persistent file storage)
    
 
     // Code to be executed inside the task
@@ -544,7 +539,7 @@ process CLOMP_summary {
     """
 #!/usr/bin/env python3
 
-print(${bam_list})
+print("Processing BAM file: ${bam_file}")
 import uuid
 import ast 
 import subprocess
@@ -558,8 +553,6 @@ from ete3 import NCBITaxa
 import timeit
 from collections import defaultdict
 ncbi = NCBITaxa()
-
-# print("AAAAHHHHASDLKFJASLKFJLAKSDJFLAKSJFLKJ")
 
 
 # Make a function to run a shell command and catch any errors
@@ -797,19 +790,13 @@ read_to_taxids_map = {}
 reads_seq_map = {}
 #For every SAM file for a given sample, read in the SAM files.
 file_start_time = timeit.default_timer()
-#bam_filename = "${bam_list}"
-#print(bam_filename)
-#bam_file = pysam.AlignmentFile("${bam_list}", "rb")
-# print('Reading in ' + "${base}")
 
-bam_file = "${bam_list}"
-print(bam_file)
+bam_file = "${bam_file}"
+print("Starting to iterate over every line in ${bam_file}")
 #For every line in the BAM file
 line_count = 0
 for line in  open(bam_file):
-    #line = line.tostring(bam_file)
     line_count += 1
-    #print(line)
     if line_count > 0:
         #For each read, pull the SAM information for that read.
         line_list = line.split('\t')
@@ -823,7 +810,6 @@ for line in  open(bam_file):
             current_read_taxid = [snap_assignment_of_current_read,100]
         else:
             #Pull the taxid and the edit distance from each line.
-            #print(snap_assignment_of_current_read)
             current_read_taxid = [snap_assignment_of_current_read.split('#')[-1],
                 int(line_list[17].split(':')[-1])]
         #Create map for each sample.
@@ -837,9 +823,6 @@ for line in  open(bam_file):
             read_to_taxids_map[current_read] = [current_read_taxid]
             # also store the read and the sequence, this does need to be in a map 
             reads_seq_map[current_read] = sequence_of_current_read
-
-file_runtime = str(timeit.default_timer() - file_start_time)
-# print('Reading in file ' + sam_file + ' took ' + file_runtime)
 
 per_base_runtime = str(timeit.default_timer() - base_start_time)
 print("${base}" + ' took ' + per_base_runtime + ' in total to read')
@@ -912,8 +895,6 @@ if "${params.BLAST_CHECK}" == "true":
         final_assignment_counts[read_to_taxids_map[item]] += 1
         final_assignment_counts[DB_TAXID] += 1
     
-        
-        
 
 #For each sample, we make a folder and for every taxid, we create a FASTA file that are named by their taxid.  We lose the read ID in this file.  #nicetohave would be hold the read ID here.
 #Here we will write a FASTA of unique reads
@@ -930,9 +911,6 @@ if "${params.WRITE_UNIQUES}" == "true":
     
 tie_break_time = str(timeit.default_timer() - tie_break_start)
 #print('Tie breaking ' + "${base}" + ' took ' + tie_break_time)
-
-#For each sample, write the Pavian output.
-#new_write_kraken("${base}", final_assignment_counts, unass_count)
 
 if "${params.ADD_HOST_FILTERED_TO_REPORT}" == "true":
     line_count = 0
