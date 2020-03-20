@@ -384,7 +384,12 @@ workflow {
             KRAKEN_DB
         )
         generate_report(
-            CLOMP_summary.out[0].groupTuple(),
+            CLOMP_summary.out[0].groupTuple(
+            ).join(
+                CLOMP_summary.out[1].groupTuple()
+            ).join(
+                CLOMP_summary.out[2].groupTuple()
+            ),
             BLAST_CHECK_DB,
             KRAKEN_DB
         )

@@ -934,7 +934,7 @@ process generate_report {
 
     // Define the input files
     input:
-      tuple val(base), file(kraken_tsv_list)
+      tuple val(base), file(kraken_tsv_list), file(unassigned_txt_list), file(assigned_txt_list)
       file BLAST_CHECK_DB
       file "kraken_db/"
     // Define the output files
