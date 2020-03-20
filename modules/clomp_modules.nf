@@ -531,7 +531,7 @@ process CLOMP_summary {
       file BLAST_CHECK_DB
       file "kraken_db/"
     output:
-      tuple val(base), file"${base}.*.temp_kraken.tsv"  // Final report TSV
+      tuple val(base), file("${base}.*.temp_kraken.tsv")  // Final report TSV
       //file "${log_file}"        // Logfile
       //file "*unassigned.txt"    //unassigned reads file
       //file "*assignments.txt"   // assigned reads file
