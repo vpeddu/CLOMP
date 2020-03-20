@@ -468,7 +468,7 @@ process collect_snap_results {
 
     // Retry at most 3 times
     errorStrategy 'retry'
-    maxRetries 3
+    maxRetries 0
     
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/bowtie2:bowtie2-2.2.9-samtools-1.3.1"
@@ -479,7 +479,7 @@ process collect_snap_results {
 
     // Define the output files
     output:
-      tuple val(base), file("${base}.sam")
+      tuple val(base), file("${base}*")
 
     // Code to be executed inside the task
     script:
@@ -490,13 +490,27 @@ set -e
 
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
+#bamcount=0
+#tempcount=0
+#echo "ALSDKFJALSKDJF"
+#for i in *.bam; do echo \$i ; tempcount=\$(samtools view -c \$i); \$bamcount=\$((\$bamcount ; done
+#for i in *.bam; do echo \$i ; tempcount=\$(samtools view -c \$i); \$bamcount=\$((\$bamcount + \$tempcount)); done
+echo "here"
 
 echo "Merging BAM files for ${base}"
-# echo ${bam_list}
-# Sam file of just headers to use for samtools merge so we only have to write sam headers once 
-# samtools view -h ${bam_list[1]} > headers.sam
+
 for i in ${bam_list}; do samtools view \$i >> ${base}.sam; done
-# samtools merge -h headers.sam ${base}.bam ${bam_list} 
+
+linenum=`cat ${base}.sam | wc -l`
+
+echo "HERe"
+
+#splitnum=`echo \$(( \$linenum / ${task.cpus} ))`
+splitnum=`echo \$(( \$linenum / 20 ))`
+cat ${base}.sam | split -l \$splitnum - ${base}
+
+
+
 
 
 """
@@ -517,10 +531,10 @@ process CLOMP_summary {
       file BLAST_CHECK_DB
       file "kraken_db/"
     output:
-      file "*final_report.tsv"  // Final report TSV
-      file "${log_file}"        // Logfile
-      file "*unassigned.txt"    //unassigned reads file
-      file "*assignments.txt"   // assigned reads file
+      file "*temp_kraken.tsv"  // Final report TSV
+      //file "${log_file}"        // Logfile
+      //file "*unassigned.txt"    //unassigned reads file
+      //file "*assignments.txt"   // assigned reads file
 
     // Clean up the ephemeral working space (not the persistent file storage)
    
@@ -530,6 +544,7 @@ process CLOMP_summary {
     """
 #!/usr/bin/env python3
 
+print(${bam_list})
 import ast 
 import subprocess
 import pysam
@@ -682,8 +697,8 @@ def new_write_kraken(basename, final_counts_map, num_unassigned):
 	l.close()
 	
 	# kraken-report creates a file that Pavian likes - we name the file base_final_report.tsv
-	kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ${base}_temp_kraken.tsv > ${base}_final_report.tsv'
-	subprocess_call(kraken_report_cmd)
+	#kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ${base}_temp_kraken.tsv > ${base}_final_report.tsv'
+	#subprocess_call(kraken_report_cmd)
 	
 
 # takes a list of finished output files and builds sam files for species level assignments 
@@ -913,7 +928,7 @@ tie_break_time = str(timeit.default_timer() - tie_break_start)
 #print('Tie breaking ' + "${base}" + ' took ' + tie_break_time)
 
 #For each sample, write the Pavian output.
-new_write_kraken("${base}", final_assignment_counts, unass_count)
+#new_write_kraken("${base}", final_assignment_counts, unass_count)
 
 if "${params.ADD_HOST_FILTERED_TO_REPORT}" == "true":
     line_count = 0
