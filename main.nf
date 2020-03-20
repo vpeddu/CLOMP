@@ -379,19 +379,17 @@ workflow {
         )
 
         CLOMP_summary(
-            collect_snap_results.out.transpose(
-            ).join(
-                filter_human_single.out[1].map{
-                    it -> [it.name.split(".log")[0], it]
-                }
-            ),
+            collect_snap_results.out.transpose(),
             BLAST_CHECK_DB,
             KRAKEN_DB
         )
         generate_report(
-            CLOMP_summary.out.groupTuple()
+            CLOMP_summary.out.groupTuple(),
+            BLAST_CHECK_DB,
+            KRAKEN_DB
         )
     }
     publish:
         generate_report.out to: "${params.OUTDIR}"
+        //filter_human_single.out[1] to: "${params.OUTDIR}/logs/"
 }

@@ -421,7 +421,6 @@ process snap_single {
     // Define the output files
     output:
       file("*${SNAP_DB.name}.bam")
-       // file(snap_cmd.sh)
 
     // Code to be executed inside the task
     script:
@@ -506,7 +505,7 @@ linenum=`cat ${base}.sam | wc -l`
 echo "HERe"
 
 #splitnum=`echo \$(( \$linenum / ${task.cpus} ))`
-splitnum=`echo \$(( \$linenum / 20 ))`
+splitnum=`echo \$(( \$linenum / 4 ))`
 cat ${base}.sam | split -l \$splitnum - ${base}
 
 
@@ -527,11 +526,13 @@ process CLOMP_summary {
 
     // Define the input files
     input:
-      tuple val(base), file(bam_file), file(log_file)
+      tuple val(base), file(bam_file)
       file BLAST_CHECK_DB
       file "kraken_db/"
     output:
       tuple val(base), file("${base}.*.temp_kraken.tsv")  // Final report TSV
+      //tuple val(base), file("*_asignments.txt")    //unassigned reads file
+      //file("*_unassigned.txt")
    
 
     // Code to be executed inside the task
@@ -579,13 +580,13 @@ def tie_break(taxid_list):
 	best_edit_distance = min(score_list) + ${params.EDIT_DISTANCE_OFFSET}
 	
 	# Keep taxids that have an edit distance less than the acceptable edit distance defined above 
-	i = 0
-	total = len(taxid_list)
+	#i = 0
+	#total = len(taxid_list)
 	for id in taxid_list:
-		i += 1
-		percent = (i / total) * 100
-		if(percent % 2 == 0):
-			print(percent)
+		#i += 1
+		#percent = (i / total) * 100
+		#if(percent % 2 == 0):
+			#print(percent)
 		if id[1] <= best_edit_distance and str(id[0]) != str('4558'):
 			actual_taxid_list.append(id[0])
 	#No longer holding edit distances		
@@ -912,14 +913,6 @@ if "${params.WRITE_UNIQUES}" == "true":
 tie_break_time = str(timeit.default_timer() - tie_break_start)
 #print('Tie breaking ' + "${base}" + ' took ' + tie_break_time)
 
-if "${params.ADD_HOST_FILTERED_TO_REPORT}" == "true":
-    line_count = 0
-    for log_line in open("${log_file}", "rt"):
-        line_count += 1
-        if line_count == 4 or line_count == 5:
-            final_assignment_counts[${params.HOST_FILTER_TAXID}] += int(log_line.split()[0])
-        if "${params.SECOND_PASS}" == "true" and (line_count == 10 or line_count == 11):
-            final_assignment_counts[${params.HOST_FILTER_TAXID}] += int(log_line.split()[0])
 
 new_write_kraken("${base}" + '_with_host', final_assignment_counts, unass_count)
 
@@ -933,30 +926,96 @@ if "${params.BUILD_SAMS}" == "true":
 process generate_report {
 
     // Retry at most 3 times
-    errorStrategy 'retry'
-    maxRetries 0
+    //#errorStrategy 'retry'
+    //maxRetries 0
     
     // Define the Docker container used for this step
-    container "ubuntu:20.04"
+    container "quay.io/fhcrc-microbiome/clomp:v0.1.3"
 
     // Define the input files
     input:
       tuple val(base), file(kraken_tsv_list)
-
+      file BLAST_CHECK_DB
+      file "kraken_db/"
     // Define the output files
     output:
-      file "${base}.report.tsv"
+      file "${base}.final_report.tsv"
 
     // Code to be executed inside the task
     script:
       """
-#!/bin/bash
+#!/usr/bin/env python3
 
-set -e
+import glob
+import csv
+import uuid
+import ast 
+import subprocess
+import pysam
+import argparse 
+import os
+import operator
+from collections import Counter
+from ete3 import NCBITaxa
+import timeit
+from collections import defaultdict
+ncbi = NCBITaxa()
+
 
 # Combine all of the input TSVs into a single file
 
-cat ${kraken_tsv_list} > ${base}.report.tsv
+
+input_files = "${kraken_tsv_list}".split(" ")
+
+
+def tsv_line_to_lst(line):
+    row_lst = []
+    for number in row.split("\t"):
+        row_lst.append(int(number))
+    return row_lst
+
+
+# Reading kraken_temp file to initialize lists of known taxids and associated counts 
+
+path = input_files[0]
+first_lst = open(path)  
+main_tax_id_lst = []
+main_number_lst = []
+
+for row in first_lst:
+    row_lst = tsv_line_to_lst(row)
+    main_tax_id_lst.append(row_lst[0]) 
+    main_number_lst.append(row_lst[1])
+
+
+# Reading all other kraken_temp files to se
+for i in range(1,len(input_files)):
+    path = input_files[i]
+    lst = open(path)
+    for row in lst:
+        other_row_lst = tsv_line_to_lst(row)
+        if other_row_lst[0] in main_tax_id_lst:
+            location = -1
+            for i in main_tax_id_lst:
+                location = location + 1
+                if i == other_row_lst[0]:
+                    sum = other_row_lst[1] + main_number_lst[location]
+                    main_number_lst[location] = sum      
+        else:
+            main_tax_id_lst.append(other_row_lst[0])
+            main_number_lst.append(other_row_lst[1])
+
+
+temp_filename = "${base}" + "_kraken_temp_merged.tsv"
+print(temp_filename)
+with open(temp_filename,'w') as output_file:
+    tsv_writer = csv.writer(output_file, delimiter='\t')
+    tsv_writer.writerows(zip(main_tax_id_lst, main_number_lst))
+output_file.close() 
+
+final_filename = "${base}" + ".final_report.tsv"
+kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ' + temp_filename + ' > ' + final_filename
+subprocess.call(kraken_report_cmd, shell = True)
 
 
 """
