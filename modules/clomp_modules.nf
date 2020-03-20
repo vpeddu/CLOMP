@@ -531,7 +531,7 @@ process CLOMP_summary {
       file BLAST_CHECK_DB
       file "kraken_db/"
     output:
-      file "*temp_kraken.tsv"  // Final report TSV
+      tuple val(base), file"${base}.*.temp_kraken.tsv"  // Final report TSV
       //file "${log_file}"        // Logfile
       //file "*unassigned.txt"    //unassigned reads file
       //file "*assignments.txt"   // assigned reads file
@@ -545,6 +545,7 @@ process CLOMP_summary {
 #!/usr/bin/env python3
 
 print(${bam_list})
+import uuid
 import ast 
 import subprocess
 import pysam
@@ -683,7 +684,10 @@ def tie_break(taxid_list):
 def new_write_kraken(basename, final_counts_map, num_unassigned):
 	print('Preparing output for ${base}')
 	# we write a file in the form taxid\tcount 
-	l = open('${base}_temp_kraken.tsv', 'w')
+  # Name the file using a random string in the filename
+  # to prevent using the same file name when combining multiple shards
+  # in the step immediately after this
+	l = open('${base}.%s.temp_kraken.tsv' % str(uuid.uuid4()), 'w')
 	
 	# initialize with the number of unassigned, we'll need to add human host filtering in earlier
 	# because some reads will get tie broken to human 
@@ -946,4 +950,36 @@ if "${params.BUILD_SAMS}" == "true":
     build_sams(sam_list)
 
     """
+}
+
+process generate_report {
+
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 0
+    
+    // Define the Docker container used for this step
+    container "ubuntu:20.04"
+
+    // Define the input files
+    input:
+      tuple val(base), file(kraken_tsv_list)
+
+    // Define the output files
+    output:
+      file "${base}.report.tsv"
+
+    // Code to be executed inside the task
+    script:
+      """
+#!/bin/bash
+
+set -e
+
+# Combine all of the input TSVs into a single file
+
+cat ${kraken_tsv_list} > ${base}.report.tsv
+
+
+"""
 }

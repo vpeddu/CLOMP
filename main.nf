@@ -232,6 +232,7 @@ include CLOMP_summary from './modules/clomp_modules' params(
     BUILD_SAMS: params.BUILD_SAMS,
     SECOND_PASS: params.SECOND_PASS,
 )
+include generate_report from './modules/clomp_modules'
 
 // Run the CLOMP workflow
 workflow {
@@ -378,7 +379,8 @@ workflow {
         )
 
         CLOMP_summary(
-            collect_snap_results.out.join(
+            collect_snap_results.out.transpose(
+            ).join(
                 filter_human_single.out[1].map{
                     it -> [it.name.split(".log")[0], it]
                 }
@@ -386,7 +388,10 @@ workflow {
             BLAST_CHECK_DB,
             KRAKEN_DB
         )
+        generate_report(
+            CLOMP_summary.out.groupTuple()
+        )
     }
     publish:
-        CLOMP_summary.out to: "${params.OUTDIR}"
+        generate_report.out to: "${params.OUTDIR}"
 }
