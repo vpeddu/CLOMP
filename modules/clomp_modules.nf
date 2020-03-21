@@ -26,6 +26,7 @@ params.SAM_NO_BUILD_LIST = "[2759,77133]"
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 
+
 /*
  * Define the processes used in this workflow
  */
@@ -505,7 +506,7 @@ linenum=`cat ${base}.sam | wc -l`
 echo "HERe"
 
 #splitnum=`echo \$(( \$linenum / ${task.cpus} ))`
-splitnum=`echo \$(( \$linenum / 4 ))`
+splitnum=`echo \$(( \$linenum / ${params.TIEBREAKING_CHUNKS} ))`
 cat ${base}.sam | split -l \$splitnum - ${base}
 
 

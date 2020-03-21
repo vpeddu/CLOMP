@@ -99,7 +99,8 @@ def helpMessage() {
                 The edit distance offset is the maximum difference in edit distance we will accept for alignments (default: 6)
       --BUILD_SAMS
                 Should we build SAM files aligning reads to species level assignments? (default: false)
-
+      --TIEBREAKING_CHUNKS
+                The number of chunks to process in parallel for tiebreaking
     """.stripIndent()
 }
 
@@ -151,6 +152,7 @@ params.WRITE_UNIQUES = true
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 params.SNAP_BATCHSIZE = 20
+params.TIEBREAKING_CHUNKS = 16
 
 // Check to make sure that the required parameters have been set
 if (!params.INPUT_FOLDER){ exit 1, "Must provide folder containing input files with --INPUT_FOLDER" }
