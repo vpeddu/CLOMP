@@ -25,6 +25,7 @@ params.MIN_READ_CUTOFF = 10
 params.SAM_NO_BUILD_LIST = "[2759,77133]"
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
+params.TIEBREAKING_CHUNKS = 16
 
 
 /*
