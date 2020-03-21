@@ -834,8 +834,8 @@ final_assignment_counts = defaultdict(int)
 print('Breaking ties for ' + "${base}")
 tie_break_start = timeit.default_timer()
 # now we're done with the loop and we have a map with reads to list of taxids assigned to them
-g = open("${base}" + '_assignments.txt', 'w')
-e = open("${base}" + '_unassigned.txt','w')
+g = open("${base}_" + str(uuid.uuid4()) + '_assignments.txt', 'w')
+e = open("${base}_" + str(uuid.uuid4()) + '_unassigned.txt','w')
 unass_count = 0
 taxid_to_read_set = {}
 
@@ -940,7 +940,8 @@ process generate_report {
     // Define the output files
     output:
       file "${base}.final_report.tsv"
-
+      file "${base}_unassigned.txt"
+      file "${base}_assigned.txt"
     // Code to be executed inside the task
     script:
       """
@@ -966,6 +967,12 @@ ncbi = NCBITaxa()
 
 
 input_files = "${kraken_tsv_list}".split(" ")
+
+unassigned_generate = 'cat ${unassigned_txt_list} > ${base}_unassigned.txt'
+assigned_generate = 'cat ${assigned_txt_list} > ${base}_assigned.txt'
+
+subprocess.call(unassigned_generate, shell = True)
+subprocess.call(assigned_generate, shell = True)
 
 
 def tsv_line_to_lst(line):
