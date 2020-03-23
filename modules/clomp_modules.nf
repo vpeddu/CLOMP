@@ -508,6 +508,9 @@ echo "HERe"
 
 #splitnum=`echo \$(( \$linenum / ${task.cpus} ))`
 splitnum=`echo \$(( \$linenum / ${params.TIEBREAKING_CHUNKS} ))`
+
+echo "lines to split: "\$splitnum 
+
 cat ${base}.sam | split -l \$splitnum - ${base}
 
 
