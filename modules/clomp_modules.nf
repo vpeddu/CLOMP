@@ -493,7 +493,7 @@ set -e
 ls -lahtr
 #bamcount=0
 #tempcount=0
-#echo "ALSDKFJALSKDJF"
+
 #for i in *.bam; do echo \$i ; tempcount=\$(samtools view -c \$i); \$bamcount=\$((\$bamcount ; done
 #for i in *.bam; do echo \$i ; tempcount=\$(samtools view -c \$i); \$bamcount=\$((\$bamcount + \$tempcount)); done
 echo "here"
@@ -513,7 +513,7 @@ echo "lines to split: "\$splitnum
 
 cat ${base}.sam | split -l \$splitnum - ${base}
 
-
+rm ${base}.sam
 
 
 
