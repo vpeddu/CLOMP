@@ -434,6 +434,15 @@ set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
+for fp in ${r1_list}; do
+  echo Checking to make sure that \$fp was downloaded to the worker
+  [[ -s \$fp ]]
+done
+
+echo Checking to make sure that the database is available at ${SNAP_DB}
+[[ -s ${SNAP_DB} ]]
+
+
 echo "Aligning ${r1_list}"
 
 echo "snap-aligner " | tr -d "\n" > snap_cmd.sh
