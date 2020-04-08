@@ -437,6 +437,9 @@ for fp in ${r1_list}; do
   [[ -s \$fp ]]
 done
 
+ls -lh ${SNAP_DB}/
+
+
 echo Checking to make sure that the full database is available at ${SNAP_DB}
 [[ -s ${SNAP_DB}/GenomeIndexHash ]]
 [[ -s ${SNAP_DB}/OverflowTable ]]
