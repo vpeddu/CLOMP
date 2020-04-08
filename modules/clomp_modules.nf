@@ -454,13 +454,13 @@ echo "snap-aligner " | tr -d "\n" > snap_cmd.sh
 for r1 in ${r1_list}; do
 
     # Get the sample name from the file name
-    sample_name=\$(echo \${r1} | sed 's/.R1.fastq.gz//')
+    sample_name=\$(echo \$r1 | sed 's/.R1.fastq.gz//')
     echo "Processing \$sample_name"
 
     # Decompress the input files
-    echo "Decompressing \${r1}"
-  gunzip -c \${r1} > \${sample_name}.fastq && rm \${r1}
-
+    echo "Decompressing \$r1"
+    gunzip -c \$r1 > \$sample_name.fastq
+    rm \$r1
     filename=\${sample_name}__${SNAP_DB.name}.bam
     temp_cmd=\$(echo "single ${SNAP_DB} \${sample_name}.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o \$filename")
     temp_cmd="\$temp_cmd"" ,  "
