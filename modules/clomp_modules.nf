@@ -438,12 +438,8 @@ for fp in ${r1_list}; do
   echo Checking to make sure that \$fp was downloaded to the worker
   [[ -s \$fp ]]
 done
-
-echo Checking to make sure that the full database is available at ${SNAP_DB}
-# [[ -s ${SNAP_DB}/GenomeIndexHash ]]
-# [[ -s ${SNAP_DB}/OverflowTable ]]
-# [[ -s ${SNAP_DB}/Genome ]]
-# [[ -s ${SNAP_DB}/GenomeIndex ]]
+echo Checking to make sure that the database is available at ${SNAP_DB}
+[[ -s ${SNAP_DB} ]]
 
 
 echo "Aligning ${r1_list}"
