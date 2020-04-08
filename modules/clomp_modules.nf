@@ -408,7 +408,7 @@ done
 
 process snap_single {
 
-    // Retry at most 3 times
+   // Retry at most 3 times
     errorStrategy 'retry'
     maxRetries 3
     
@@ -428,39 +428,25 @@ process snap_single {
     script:
       """
 #!/bin/bash
-
 set -e
-
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
-
 for fp in ${r1_list}; do
   echo Checking to make sure that \$fp was downloaded to the worker
   [[ -s \$fp ]]
 done
-
-echo Checking to make sure that the full database is available at ${SNAP_DB}
-[[ -s ${SNAP_DB}/GenomeIndexHash ]]
-[[ -s ${SNAP_DB}/OverflowTable ]]
-[[ -s ${SNAP_DB}/Genome ]]
-[[ -s ${SNAP_DB}/GenomeIndex ]]
-
-
+echo Checking to make sure that the database is available at ${SNAP_DB}
+[[ -s ${SNAP_DB} ]]
 echo "Aligning ${r1_list}"
-
 echo "snap-aligner " | tr -d "\n" > snap_cmd.sh
-
 # Iterate over each of the input files
 for r1 in ${r1_list}; do
-
     # Get the sample name from the file name
-    sample_name=\$(echo \$r1 | sed 's/.R1.fastq.gz//')
+    sample_name=\$(echo \${r1} | sed 's/.R1.fastq.gz//')
     echo "Processing \$sample_name"
-
     # Decompress the input files
-    echo "Decompressing \$r1"
-    gunzip -c \$r1 > \$sample_name.fastq
-    rm \$r1
+    echo "Decompressing \${r1}"
+    gunzip -c \${r1} > \${sample_name}.fastq && rm \${r1}
     filename=\${sample_name}__${SNAP_DB.name}.bam
     temp_cmd=\$(echo "single ${SNAP_DB} \${sample_name}.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o \$filename")
     temp_cmd="\$temp_cmd"" ,  "
@@ -469,12 +455,10 @@ for r1 in ${r1_list}; do
     #echo \$cmd
     #echo "Running SNAP"
     #snap-aligner single ${SNAP_DB} R1.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o -bam - `> \${sample_name}__${SNAP_DB.name}.bam`
-
     echo "Removing temporary files"
     # rm R1.fastq
 done
 bash snap_cmd.sh
-
 """
 }
 
