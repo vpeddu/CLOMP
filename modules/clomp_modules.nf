@@ -431,12 +431,19 @@ process snap_single {
 set -e
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
+
 for fp in ${r1_list}; do
   echo Checking to make sure that \$fp was downloaded to the worker
   [[ -s \$fp ]]
 done
-echo Checking to make sure that the database is available at ${SNAP_DB}
-[[ -s ${SNAP_DB} ]]
+
+echo Checking to make sure that the full database is available at ${SNAP_DB}
+[[ -s ${SNAP_DB}/GenomeIndexHash ]]
+[[ -s ${SNAP_DB}/OverflowTable ]]
+[[ -s ${SNAP_DB}/Genome ]]
+[[ -s ${SNAP_DB}/GenomeIndex ]]
+
+
 echo "Aligning ${r1_list}"
 echo "snap-aligner " | tr -d "\n" > snap_cmd.sh
 # Iterate over each of the input files
@@ -446,7 +453,10 @@ for r1 in ${r1_list}; do
     echo "Processing \$sample_name"
     # Decompress the input files
     echo "Decompressing \${r1}"
-    gunzip -c \${r1} > \${sample_name}.fastq && rm \${r1}
+
+    gunzip -c \${r1} > \${sample_name}.fastq
+    rm \${r1}
+
     filename=\${sample_name}__${SNAP_DB.name}.bam
     temp_cmd=\$(echo "single ${SNAP_DB} \${sample_name}.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o \$filename")
     temp_cmd="\$temp_cmd"" ,  "
