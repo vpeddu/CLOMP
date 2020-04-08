@@ -441,10 +441,10 @@ ls -lh ${SNAP_DB}/
 
 
 echo Checking to make sure that the full database is available at ${SNAP_DB}
-[[ -s ${SNAP_DB}/GenomeIndexHash ]]
-[[ -s ${SNAP_DB}/OverflowTable ]]
-[[ -s ${SNAP_DB}/Genome ]]
-[[ -s ${SNAP_DB}/GenomeIndex ]]
+[[ -f ${SNAP_DB}/GenomeIndexHash ]]
+[[ -f ${SNAP_DB}/OverflowTable ]]
+[[ -f ${SNAP_DB}/Genome ]]
+[[ -f ${SNAP_DB}/GenomeIndex ]]
 
 
 echo "Aligning ${r1_list}"
