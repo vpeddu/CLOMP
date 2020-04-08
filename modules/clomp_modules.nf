@@ -440,10 +440,10 @@ for fp in ${r1_list}; do
 done
 
 echo Checking to make sure that the full database is available at ${SNAP_DB}
-[[ -s ${SNAP_DB}/GenomeIndexHash ]]
-[[ -s ${SNAP_DB}/OverflowTable ]]
-[[ -s ${SNAP_DB}/Genome ]]
-[[ -s ${SNAP_DB}/GenomeIndex ]]
+# [[ -s ${SNAP_DB}/GenomeIndexHash ]]
+# [[ -s ${SNAP_DB}/OverflowTable ]]
+# [[ -s ${SNAP_DB}/Genome ]]
+# [[ -s ${SNAP_DB}/GenomeIndex ]]
 
 
 echo "Aligning ${r1_list}"
@@ -518,7 +518,9 @@ for i in ${bam_list}; do samtools view \$i >> ${base}.sam; done
 
 linenum=`cat ${base}.sam | wc -l`
 
-echo "HERe"
+echo "lines: " \$linenum
+
+echo "tiebreaking chunks: " ${params.TIEBREAKING_CHUNKS}
 
 #splitnum=`echo \$(( \$linenum / ${task.cpus} ))`
 splitnum=`echo \$(( \$linenum / ${params.TIEBREAKING_CHUNKS} ))`
