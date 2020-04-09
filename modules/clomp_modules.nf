@@ -940,7 +940,8 @@ if "${params.BUILD_SAMS}" == "true":
 
 process generate_report {
 
-    Retry at most 3 times
+
+    //Retry at most 3 times
     errorStrategy 'retry'
     maxRetries 3
     
