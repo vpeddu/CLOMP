@@ -940,9 +940,9 @@ if "${params.BUILD_SAMS}" == "true":
 
 process generate_report {
 
-    // Retry at most 3 times
-    //#errorStrategy 'retry'
-    //maxRetries 0
+    Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
     
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/clomp:v0.1.3"
