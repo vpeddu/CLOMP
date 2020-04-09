@@ -10,7 +10,7 @@ if (!require("Rsamtools")) {
 }
 if (!require("data.table")) { 
   install.packages("data.table")
-  library('Rsamtools')
+  library('data.table')
 }
 if (!require("tidyr")) { 
   install.packages("tidyr")
@@ -32,10 +32,11 @@ taxa_detect<-function(df, taxid){
   return(temp_rpm)
 }
 
-T1_RPM<-c()
-MS2_RPM<-c()
+
+
 for(i in 1:length(files)){ 
-  temp_tsv<-read.csv(files[i], sep = '\t', col.names = c('percent_clade_reads', 'number_clade_reads_rooted_at_taxon','number_clade_reads_this_taxon', 'taxa', 'taxid', 'name'), header = FALSE)
+  print(files[i])
+  temp_tsv<-read.csv(files[i], sep = "\t", col.names = c('percent_clade_reads', 'number_clade_reads_rooted_at_taxon','number_clade_reads_this_taxon', 'taxa', 'taxid', 'name'), header = FALSE)
   total_reads = temp_tsv$number_clade_reads_rooted_at_taxon[2] + temp_tsv$number_clade_reads_rooted_at_taxon[1]
   temp_tsv$RPM = temp_tsv$number_clade_reads_this_taxon  / (total_reads / 1e6)
   temp_tsv$cumulative_RPM<-temp_tsv$number_clade_reads_rooted_at_taxon / (total_reads / 1e6)
@@ -66,220 +67,35 @@ for(i in 1:length(files)){
       colnames(final_tsv)[i+2]<-file_name
     }
   }
-  
-  T1_RPM<-append(T1_RPM,taxa_detect(temp_tsv, 187217))
-  MS2_RPM<-append(MS2_RPM,taxa_detect(temp_tsv, 329852))
 }
 
 
 final_tsv<-final_tsv[complete.cases(final_tsv),]
+colnames(final_tsv)<-c('taxid','name','WA6-UW3', 'WA7-UW4', 'WA4-UW2', 'SC5683', 'WA3-UW1', 'SC5698', 'WA9-UW6', 'WA8-UW5')
 
-# QC hardcoded to fail if RPM of T1 or MS2 < 100 
-qc_df<-data.frame(files,T1_RPM,MS2_RPM)
-qc_df$files<-as.character(qc_df$files)
-qc_df$QC<-NA
-for(i in 1:nrow(qc_df)){ 
-  qc_df$files[i]<-strsplit(qc_df$files[i],"_final")[[1]][1]
-  if(any(qc_df[i,c(2:3)] > 100 )){ 
-    qc_df$QC[i]<-'PASS'
-  }
-  else { 
-    qc_df$QC[i]<-'FAIL'
-  }
-}
+to_remove<-c()
 
-DNA_df<-final_tsv[,c(1,2,which(grepl('DNA',colnames(final_tsv))))]
-RNA_df<-final_tsv[,c(1,2,which(grepl('RNA',colnames(final_tsv))))]
-
-# Function to add in custom flags later
-flag<-function(flagname,cutoff,df){ 
-  df[,(ncol(df + 1))] <- NA
-  colnames(df)[ncol(df) + 1]<-paste0(flagname)
-  
-  for(i in 1:nrow(df)){ 
-    if(any(df[i,] > cutoff)){ 
-      df[i,(ncol(df)+1)]<-'FLAG'
+for(i in 1:nrow(final_tsv)){ 
+  if( all(final_tsv[i,3:ncol(final_tsv)] < 10 )){ 
+    to_remove<-append(to_remove, i)
     }
   }
-  return(df)
-}
 
-# Function to flag columns where water control has RPM > cutoff value 
-water_flag<-function(ratio_cutoff,no_water_cutoff,df){ 
-  df[,(ncol(df) + 1)] <- NA
-  colnames(df)[ncol(df)]<-'WATER_PASS'
-  water_cols<-which(grepl('*H2O*', colnames(df)))
-  for(i in 1:nrow(df)){ 
-    temp_names<-c()
-    temp_list<-c()
-    for(j in 3:(ncol(df) - 1)){
-      #print(df[i,water_cols[1]])
-      if(j == water_cols[1]){ 
-        next
-      }
-      else { 
-        if(df[i,water_cols[1]] < 1){
-          if(df[i,j] > no_water_cutoff){
-            temp_list<-append(colnames(df)[j], temp_list)
-            next
-          }
-          next
-        }
-        #print(j)  
-        temp_ratio<-df[i,j] / df[i,water_cols[1]]
-        if(temp_ratio > ratio_cutoff){ 
-          temp_list<-append(colnames(df)[j], temp_list)
-        }
-        #temp_list<-append(temp_ratio, temp_list) 
-        #temp_names<-append(colname
-      }
-    }
-    #print(temp_list)
-    #if(any(temp_list < cutoff )){ 
-    df[i,(ncol(df))]<-paste0((temp_list),collapse=', ' )
-    #}
-  }
-  return(df)
-}
-
-
-DNA_df_flag<-water_flag(10,1,DNA_df)
-DNA_DF_ratio<-DNA_df_flag
-
-#need this in a loop in case water = 0 
-#get total sample list from ederlyn to figure out what's actually in the samples and if we really found them 
-DNA_DF_ratio[,c(3:(ncol(DNA_DF_ratio)-1))]<-DNA_df_flag[,c(3:(ncol(DNA_df_flag)-1))] / DNA_df_flag[,which(grepl('*H2O*', colnames(DNA_df_flag)))[1]]
-
-RNA_df_flag<-water_flag(10,1,RNA_df)
-
-# Function to detect viral reads that pass cutoff and detect genomic coordinates
-
-viral_loci_detect<-function(df, loci_count, loci_spacing){ 
-  
-  #list all sam files 
-  bam_list<-list.files(pattern = "*.sam")
-  
-  #add column to df to track viral loci pass/fail
-  df[,ncol(df)+1]<-NA
-  colnames(df)[ncol(df)]<-'Viral locus pass'
-  viral_rows<-which(grepl('virus',df[,2]))
-  
-  #list of which rows passed the water condition
-  passed_list<-which(!(df[,ncol(df)-1]==''))
-  
-  #filtering passed_list by only rows with viral taxa
-  virus_index<-which(viral_rows %in% passed_list)
-  
-  #list of samples to read in so we don't have to load more than we have to 
-  samples_to_analyze<-unique(unlist(strsplit(RNA_df_flag[,(ncol(df)-1)][virus_index],',')))
-  print(samples_to_analyze)
-  
-  
-  
-}
-for(i in 1:length(samples_to_analyze)){ 
-  
-  #read file with data.table(). This is markedly faster than with read.csv()
-  temp_filename<-paste0(samples_to_analyze[i],'.sam')
-  temp_file<-fread(temp_filename, sep = '\t')
-  
-  #build index for lookups in the data.table() object
-  separate(data = temp_file, col = V3, into = c("name", "taxid"), sep = "#")
-  setkey(temp_file, taxid)
-  
-  taxid_temp_list<-c()
-  for(j in 1:length(passed_files)){ 
-    temp_bam_name<-which(grepl(passed_files[j],bam_list))
-    temp_bam<-scanbam(temp_bam_nam)
-    bam_index<-which(grepl(df[virus_index[i],1],bamfile[[1]]$qname))
-    loci_list<-c()
-    for(k in 1:length(bam_index)){ 
-      loci_list<-append(bamfile[[1]]$pos[k], loci_list)
-    }
-  }
-  if(length(loci_list < loci_count)){ 
-    df[i,ncol(df)]<-paste0('Did not meet minimum loci threshold of ', loci_count)
-    next
-  }
-  else{ 
-    loci_pass<-c()
-    loci_list<-order(loci_list)
-    for(m in 1:(length(loci_list))-1){ 
-      if((loci_list[m+1] - loci_list[m]) > loci_spacing){ 
-        loci_pass<-append(m, loci_pass)
-      }
-    }
-    if(length(loci_pass) > loci_count){ 
-      df[i,ncol(df)]<-paste0('PASS with ',length(loci_pass),' loci at ', loci_spacing,' bp apart')
-    }
-  }
-}
-
-viral_loci_detect(RNA_df_flag, 3,100)
+zero_removed<-final_tsv[-to_remove,]
 
 wb = createWorkbook()
 
-sheet = createSheet(wb, "QC")
+sheet = createSheet(wb, "RPM < 10")
 
-addDataFrame(qc_df, sheet=sheet, startColumn=1, row.names=FALSE)
+addDataFrame(zero_removed, sheet=sheet, startColumn=1, row.names=FALSE)
 
-sheet = createSheet(wb, "DNA RPM values")
+sheet = createSheet(wb, "All RPM values")
 
-addDataFrame(DNA_df_flag, sheet=sheet, startColumn=1, row.names=FALSE)
-
-sheet = createSheet(wb, "RNA RPM values")
-
-addDataFrame(RNA_df_flag, sheet=sheet, startColumn=1, row.names=FALSE)
-
-# Highlight failed QC rows
-# fo <- Fill(foregroundColor="yellow")
-# cs <- CellStyle(wb, fill=fo)
-# sheets <- getSheets(wb)    
-# sheet <- sheets[["QC"]]  
-# 
-# rows <- getRows(sheet, rowIndex=2:(nrow(qc_df)+1))
-# cells <- getCells(rows, 4)
-# values <- lapply(cells, getCellValue)
-# 
-# highlight <- "test"
-# for (i in names(values)) {
-#   x <- as.character(values[i])
-#   print(x)
-#   if (x == 'FAIL') {
-#     highlight <- c(highlight, i)
-#   }    
-# }
-# highlight <- highlight[-1]
-# 
-# lapply(names(cells[highlight]),
-#        function(ii)setCellStyle(cells[[ii]],cs))
-
-# Highlight water flagged rows in DNA sheet
-# 
-# fo <- Fill(foregroundColor="teal")
-# cs <- CellStyle(wb, fill=fo)
-# sheets <- getSheets(wb)    
-# sheet <- sheets[["DNA RPM values"]]  
-# 
-# rows <- getRows(sheet, rowIndex=1:(nrow(DNA_df_flag)))
-# cells <- getCells(rows, ncol(DNA_df_flag))
-# values <- lapply(cells, getCellValue)
-# 
-# highlight <- "test"
-# for (i in names(values)) {
-#   x <- as.character(values[i])
-#   if (x == 'FLAG') {
-#   print(x)
-#     highlight <- c(highlight, i)
-#   }    
-# }
-# highlight <- highlight[-1]
-# 
-# lapply(names(cells[highlight]),
-#        function(ii)setCellStyle(cells[[ii]],cs))
+addDataFrame(final_tsv, sheet=sheet, startColumn=1, row.names=FALSE)
 
 
-saveWorkbook(wb, "QC_data.xlsx")
+
+saveWorkbook(wb, "RPM_summary.xlsx")
 
 
 

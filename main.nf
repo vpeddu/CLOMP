@@ -72,7 +72,7 @@ def helpMessage() {
       --BLAST_CHECK_DB
                 Database used to check results with BLAST (default: None)
       --FILTER_LIST
-                List of taxids to filter from tiebreaking (default: "[12908,28384,48479,99802,4558]")
+                List of taxids to filter from tiebreaking (default: "[12908,28384,48479]")
       --KRAKEN_DB_PATH
                 Path to Kraken database (default: "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/kraken_db/")
       --H_STRICT
@@ -99,7 +99,8 @@ def helpMessage() {
                 The edit distance offset is the maximum difference in edit distance we will accept for alignments (default: 6)
       --BUILD_SAMS
                 Should we build SAM files aligning reads to species level assignments? (default: false)
-
+      --TIEBREAKING_CHUNKS
+                The number of chunks to process in parallel for tiebreaking
     """.stripIndent()
 }
 
@@ -151,6 +152,7 @@ params.WRITE_UNIQUES = true
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 params.SNAP_BATCHSIZE = 20
+params.TIEBREAKING_CHUNKS = 16
 
 // Check to make sure that the required parameters have been set
 if (!params.INPUT_FOLDER){ exit 1, "Must provide folder containing input files with --INPUT_FOLDER" }
@@ -232,6 +234,7 @@ include CLOMP_summary from './modules/clomp_modules' params(
     BUILD_SAMS: params.BUILD_SAMS,
     SECOND_PASS: params.SECOND_PASS,
 )
+include generate_report from './modules/clomp_modules'
 
 // Run the CLOMP workflow
 workflow {
@@ -378,15 +381,22 @@ workflow {
         )
 
         CLOMP_summary(
-            collect_snap_results.out.join(
-                filter_human_single.out[1].map{
-                    it -> [it.name.split(".log")[0], it]
-                }
+            collect_snap_results.out.transpose(),
+            BLAST_CHECK_DB,
+            KRAKEN_DB
+        )
+        generate_report(
+            CLOMP_summary.out[0].groupTuple(
+            ).join(
+                CLOMP_summary.out[1].groupTuple()
+            ).join(
+                CLOMP_summary.out[2].groupTuple()
             ),
             BLAST_CHECK_DB,
             KRAKEN_DB
         )
     }
     publish:
-        CLOMP_summary.out to: "${params.OUTDIR}"
+        generate_report.out to: "${params.OUTDIR}"
+        //filter_human_single.out[1] to: "${params.OUTDIR}/logs/"
 }

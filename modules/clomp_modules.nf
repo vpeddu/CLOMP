@@ -15,7 +15,7 @@ params.ADD_HOST_FILTERED_TO_REPORT = true
 params.HOST_FILTER_TAXID = 9606
 params.H_STRICT = false
 params.H_TAXID = 9606
-params.FILTER_LIST = "[12908,28384,48479,99802,4558]"
+params.FILTER_LIST = "[12908,28384,48479]"
 params.LOGIC = "strict"
 params.INCLUSION_TAXID = 2759
 params.EXCLUSION_TAXID = 9604
@@ -25,6 +25,8 @@ params.MIN_READ_CUTOFF = 10
 params.SAM_NO_BUILD_LIST = "[2759,77133]"
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
+params.TIEBREAKING_CHUNKS = 16
+
 
 /*
  * Define the processes used in this workflow
@@ -182,7 +184,7 @@ sample_name=\$(echo ${r1} | sed 's/.R1.fastq.gz//')
 echo "Starting the alignment of ${r1}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
-    --threads 36 \
+    --threads ${task.cpus} \
     -x ${params.BWT_DB_PREFIX} \
     -q \
     -U <(gunzip -c ${r1}) | \
@@ -406,7 +408,7 @@ done
 
 process snap_single {
 
-    // Retry at most 3 times
+   // Retry at most 3 times
     errorStrategy 'retry'
     maxRetries 3
     
@@ -421,32 +423,41 @@ process snap_single {
     // Define the output files
     output:
       file("*${SNAP_DB.name}.bam")
-       // file(snap_cmd.sh)
 
     // Code to be executed inside the task
     script:
       """
 #!/bin/bash
-
 set -e
-
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
 
+for fp in ${r1_list}; do
+  echo Checking to make sure that \$fp was downloaded to the worker
+  [[ -s \$fp ]]
+done
+
+ls -lh ${SNAP_DB}/
+
+
+echo Checking to make sure that the full database is available at ${SNAP_DB}
+[[ -f ${SNAP_DB}/GenomeIndexHash ]]
+[[ -f ${SNAP_DB}/OverflowTable ]]
+[[ -f ${SNAP_DB}/Genome ]]
+[[ -f ${SNAP_DB}/GenomeIndex ]]
+
+
 echo "Aligning ${r1_list}"
-
 echo "snap-aligner " | tr -d "\n" > snap_cmd.sh
-
 # Iterate over each of the input files
 for r1 in ${r1_list}; do
-
     # Get the sample name from the file name
     sample_name=\$(echo \${r1} | sed 's/.R1.fastq.gz//')
     echo "Processing \$sample_name"
-
     # Decompress the input files
     echo "Decompressing \${r1}"
-    gunzip -c \${r1} > \${sample_name}.fastq && rm \${r1}
+    gunzip -c \${r1} > \${sample_name}.fastq
+    rm \${r1}
     filename=\${sample_name}__${SNAP_DB.name}.bam
     temp_cmd=\$(echo "single ${SNAP_DB} \${sample_name}.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o \$filename")
     temp_cmd="\$temp_cmd"" ,  "
@@ -455,12 +466,10 @@ for r1 in ${r1_list}; do
     #echo \$cmd
     #echo "Running SNAP"
     #snap-aligner single ${SNAP_DB} R1.fastq -t ${task.cpus} ${params.SNAP_OPTIONS} -o -bam - `> \${sample_name}__${SNAP_DB.name}.bam`
-
     echo "Removing temporary files"
     # rm R1.fastq
 done
 bash snap_cmd.sh
-
 """
 }
 
@@ -479,7 +488,7 @@ process collect_snap_results {
 
     // Define the output files
     output:
-      tuple val(base), file("${base}.sam")
+      tuple val(base), file("${base}*")
 
     // Code to be executed inside the task
     script:
@@ -490,13 +499,32 @@ set -e
 
 # For logging and debugging, list all of the files in the working directory
 ls -lahtr
+#bamcount=0
+#tempcount=0
+
+#for i in *.bam; do echo \$i ; tempcount=\$(samtools view -c \$i); \$bamcount=\$((\$bamcount ; done
+#for i in *.bam; do echo \$i ; tempcount=\$(samtools view -c \$i); \$bamcount=\$((\$bamcount + \$tempcount)); done
+echo "here"
 
 echo "Merging BAM files for ${base}"
-# echo ${bam_list}
-# Sam file of just headers to use for samtools merge so we only have to write sam headers once 
-# samtools view -h ${bam_list[1]} > headers.sam
+
 for i in ${bam_list}; do samtools view \$i >> ${base}.sam; done
-# samtools merge -h headers.sam ${base}.bam ${bam_list} 
+
+linenum=`cat ${base}.sam | wc -l`
+
+echo "lines: " \$linenum
+
+echo "tiebreaking chunks: " ${params.TIEBREAKING_CHUNKS}
+
+#splitnum=`echo \$(( \$linenum / ${task.cpus} ))`
+splitnum=`echo \$(( \$linenum / ${params.TIEBREAKING_CHUNKS} ))`
+
+echo "lines to split: "\$splitnum 
+
+cat ${base}.sam | split -l \$splitnum - ${base}
+
+rm ${base}.sam
+
 
 
 """
@@ -513,16 +541,13 @@ process CLOMP_summary {
 
     // Define the input files
     input:
-      tuple val(base), file(bam_list), file(log_file)
+      tuple val(base), file(bam_file)
       file BLAST_CHECK_DB
       file "kraken_db/"
     output:
-      file "*final_report.tsv"  // Final report TSV
-      file "${log_file}"        // Logfile
-      file "*unassigned.txt"    //unassigned reads file
-      file "*assignments.txt"   // assigned reads file
-
-    // Clean up the ephemeral working space (not the persistent file storage)
+      tuple val(base), file("${base}.*.temp_kraken.tsv")
+      tuple val(base), file("*unassigned.txt")
+      tuple val(base), file("*assignments.txt")
    
 
     // Code to be executed inside the task
@@ -530,6 +555,8 @@ process CLOMP_summary {
     """
 #!/usr/bin/env python3
 
+print("Processing BAM file: ${bam_file}")
+import uuid
 import ast 
 import subprocess
 import pysam
@@ -542,8 +569,6 @@ from ete3 import NCBITaxa
 import timeit
 from collections import defaultdict
 ncbi = NCBITaxa()
-
-# print("AAAAHHHHASDLKFJASLKFJLAKSDJFLAKSJFLKJ")
 
 
 # Make a function to run a shell command and catch any errors
@@ -570,8 +595,14 @@ def tie_break(taxid_list):
 	best_edit_distance = min(score_list) + ${params.EDIT_DISTANCE_OFFSET}
 	
 	# Keep taxids that have an edit distance less than the acceptable edit distance defined above 
+	#i = 0
+	#total = len(taxid_list)
 	for id in taxid_list:
-		if id[1] <= best_edit_distance:
+		#i += 1
+		#percent = (i / total) * 100
+		#if(percent % 2 == 0):
+			#print(percent)
+		if id[1] <= best_edit_distance and str(id[0]) != str('4558') and str(id[0]) != str('99802'):
 			actual_taxid_list.append(id[0])
 	#No longer holding edit distances		
 	taxid_list = actual_taxid_list
@@ -662,7 +693,10 @@ def tie_break(taxid_list):
 def new_write_kraken(basename, final_counts_map, num_unassigned):
 	print('Preparing output for ${base}')
 	# we write a file in the form taxid\tcount 
-	l = open('${base}_temp_kraken.tsv', 'w')
+  # Name the file using a random string in the filename
+  # to prevent using the same file name when combining multiple shards
+  # in the step immediately after this
+	l = open('${base}.%s.temp_kraken.tsv' % str(uuid.uuid4()), 'w')
 	
 	# initialize with the number of unassigned, we'll need to add human host filtering in earlier
 	# because some reads will get tie broken to human 
@@ -676,8 +710,8 @@ def new_write_kraken(basename, final_counts_map, num_unassigned):
 	l.close()
 	
 	# kraken-report creates a file that Pavian likes - we name the file base_final_report.tsv
-	kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ${base}_temp_kraken.tsv > ${base}_final_report.tsv'
-	subprocess_call(kraken_report_cmd)
+	#kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ${base}_temp_kraken.tsv > ${base}_final_report.tsv'
+	#subprocess_call(kraken_report_cmd)
 	
 
 # takes a list of finished output files and builds sam files for species level assignments 
@@ -772,19 +806,13 @@ read_to_taxids_map = {}
 reads_seq_map = {}
 #For every SAM file for a given sample, read in the SAM files.
 file_start_time = timeit.default_timer()
-#bam_filename = "${bam_list}"
-#print(bam_filename)
-#bam_file = pysam.AlignmentFile("${bam_list}", "rb")
-# print('Reading in ' + "${base}")
 
-bam_file = "${bam_list}"
-print(bam_file)
+bam_file = "${bam_file}"
+print("Starting to iterate over every line in ${bam_file}")
 #For every line in the BAM file
 line_count = 0
 for line in  open(bam_file):
-    #line = line.tostring(bam_file)
     line_count += 1
-    print(line)
     if line_count > 0:
         #For each read, pull the SAM information for that read.
         line_list = line.split('\t')
@@ -798,7 +826,6 @@ for line in  open(bam_file):
             current_read_taxid = [snap_assignment_of_current_read,100]
         else:
             #Pull the taxid and the edit distance from each line.
-            print(snap_assignment_of_current_read)
             current_read_taxid = [snap_assignment_of_current_read.split('#')[-1],
                 int(line_list[17].split(':')[-1])]
         #Create map for each sample.
@@ -813,9 +840,6 @@ for line in  open(bam_file):
             # also store the read and the sequence, this does need to be in a map 
             reads_seq_map[current_read] = sequence_of_current_read
 
-file_runtime = str(timeit.default_timer() - file_start_time)
-# print('Reading in file ' + sam_file + ' took ' + file_runtime)
-
 per_base_runtime = str(timeit.default_timer() - base_start_time)
 print("${base}" + ' took ' + per_base_runtime + ' in total to read')
 final_assignment_counts = defaultdict(int)
@@ -825,8 +849,8 @@ final_assignment_counts = defaultdict(int)
 print('Breaking ties for ' + "${base}")
 tie_break_start = timeit.default_timer()
 # now we're done with the loop and we have a map with reads to list of taxids assigned to them
-g = open("${base}" + '_assignments.txt', 'w')
-e = open("${base}" + '_unassigned.txt','w')
+g = open("${base}_" + str(uuid.uuid4()) + '_assignments.txt', 'w')
+e = open("${base}_" + str(uuid.uuid4()) + '_unassigned.txt','w')
 unass_count = 0
 taxid_to_read_set = {}
 
@@ -887,8 +911,6 @@ if "${params.BLAST_CHECK}" == "true":
         final_assignment_counts[read_to_taxids_map[item]] += 1
         final_assignment_counts[DB_TAXID] += 1
     
-        
-        
 
 #For each sample, we make a folder and for every taxid, we create a FASTA file that are named by their taxid.  We lose the read ID in this file.  #nicetohave would be hold the read ID here.
 #Here we will write a FASTA of unique reads
@@ -904,19 +926,8 @@ if "${params.WRITE_UNIQUES}" == "true":
         f.close()
     
 tie_break_time = str(timeit.default_timer() - tie_break_start)
-print('Tie breaking ' + "${base}" + ' took ' + tie_break_time)
+#print('Tie breaking ' + "${base}" + ' took ' + tie_break_time)
 
-#For each sample, write the Pavian output.
-new_write_kraken("${base}", final_assignment_counts, unass_count)
-
-if "${params.ADD_HOST_FILTERED_TO_REPORT}" == "true":
-    line_count = 0
-    for log_line in open("${log_file}", "rt"):
-        line_count += 1
-        if line_count == 4 or line_count == 5:
-            final_assignment_counts[${params.HOST_FILTER_TAXID}] += int(log_line.split()[0])
-        if "${params.SECOND_PASS}" == "true" and (line_count == 10 or line_count == 11):
-            final_assignment_counts[${params.HOST_FILTER_TAXID}] += int(log_line.split()[0])
 
 new_write_kraken("${base}" + '_with_host', final_assignment_counts, unass_count)
 
@@ -925,4 +936,110 @@ if "${params.BUILD_SAMS}" == "true":
     build_sams(sam_list)
 
     """
+}
+
+process generate_report {
+
+
+    //Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
+    // Define the Docker container used for this step
+    container "quay.io/fhcrc-microbiome/clomp:v0.1.3"
+
+    // Define the input files
+    input:
+      tuple val(base), file(kraken_tsv_list), file(unassigned_txt_list), file(assigned_txt_list)
+      file BLAST_CHECK_DB
+      file "kraken_db/"
+    // Define the output files
+    output:
+      file "${base}.final_report.tsv"
+      file "${base}_unassigned.txt"
+      file "${base}_assigned.txt"
+    // Code to be executed inside the task
+    script:
+      """
+#!/usr/bin/env python3
+
+import glob
+import csv
+import uuid
+import ast 
+import subprocess
+import pysam
+import argparse 
+import os
+import operator
+from collections import Counter
+from ete3 import NCBITaxa
+import timeit
+from collections import defaultdict
+ncbi = NCBITaxa()
+
+
+# Combine all of the input TSVs into a single file
+
+
+input_files = "${kraken_tsv_list}".split(" ")
+
+unassigned_generate = 'cat ${unassigned_txt_list} > ${base}_unassigned.txt'
+assigned_generate = 'cat ${assigned_txt_list} > ${base}_assigned.txt'
+
+subprocess.call(unassigned_generate, shell = True)
+subprocess.call(assigned_generate, shell = True)
+
+
+def tsv_line_to_lst(line):
+    row_lst = []
+    for number in row.split("\t"):
+        row_lst.append(int(number))
+    return row_lst
+
+
+# Reading kraken_temp file to initialize lists of known taxids and associated counts 
+
+path = input_files[0]
+first_lst = open(path)  
+main_tax_id_lst = []
+main_number_lst = []
+
+for row in first_lst:
+    row_lst = tsv_line_to_lst(row)
+    main_tax_id_lst.append(row_lst[0]) 
+    main_number_lst.append(row_lst[1])
+
+
+# Reading all other kraken_temp files to se
+for i in range(1,len(input_files)):
+    path = input_files[i]
+    lst = open(path)
+    for row in lst:
+        other_row_lst = tsv_line_to_lst(row)
+        if other_row_lst[0] in main_tax_id_lst:
+            location = -1
+            for i in main_tax_id_lst:
+                location = location + 1
+                if i == other_row_lst[0]:
+                    sum = other_row_lst[1] + main_number_lst[location]
+                    main_number_lst[location] = sum      
+        else:
+            main_tax_id_lst.append(other_row_lst[0])
+            main_number_lst.append(other_row_lst[1])
+
+
+temp_filename = "${base}" + "_kraken_temp_merged.tsv"
+print(temp_filename)
+with open(temp_filename,'w') as output_file:
+    tsv_writer = csv.writer(output_file, delimiter='\t')
+    tsv_writer.writerows(zip(main_tax_id_lst, main_number_lst))
+output_file.close() 
+
+final_filename = "${base}" + ".final_report.tsv"
+kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ' + temp_filename + ' > ' + final_filename
+subprocess.call(kraken_report_cmd, shell = True)
+
+
+"""
 }

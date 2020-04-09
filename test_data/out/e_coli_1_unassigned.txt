@@ -1,1 +1,1 @@
-/Users/gerbix/Documents/vikas/CLOMP/CLOMP/test_data/work/f2/ee7eeab4432f02f9a8a66b2a5e2e1e/e_coli_1_unassigned.txt
+/Users/gerbix/Documents/vikas/CLOMP/CLOMP/test_data/work/13/c264b4d248bac32f24ef1c46319970/e_coli_1_unassigned.txt
