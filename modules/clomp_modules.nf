@@ -477,7 +477,7 @@ process collect_snap_results {
 
     // Retry at most 3 times
     errorStrategy 'retry'
-    maxRetries 0
+    maxRetries 3
     
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/bowtie2:bowtie2-2.2.9-samtools-1.3.1"
@@ -534,7 +534,7 @@ process CLOMP_summary {
 
     // Retry at most 3 times
     errorStrategy 'retry'
-    maxRetries 1
+    maxRetries 3
     
     // Define the Docker container used for this step
     container "quay.io/fhcrc-microbiome/clomp:v0.1.3"
