@@ -1066,6 +1066,8 @@ process summarize_run {
     // Code to be executed inside the task
     script:
       """
+      #!/bin/bash
+      
       R
         #Read Kraken tsvs and give back excel file with RPM calculations 
         library('xlsx')
