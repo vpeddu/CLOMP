@@ -152,7 +152,7 @@ params.WRITE_UNIQUES = true
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 params.SNAP_BATCHSIZE = 20
-params.TIEBREAKING_CHUNKS = 16
+params.TIEBREAKING_CHUNKS = 2
 
 // Check to make sure that the required parameters have been set
 if (!params.INPUT_FOLDER){ exit 1, "Must provide folder containing input files with --INPUT_FOLDER" }
@@ -214,6 +214,7 @@ include filter_human_paired as filter_human_paired_second_pass from './modules/c
 include bbMask_Single from './modules/clomp_modules'
 include snap_single from './modules/clomp_modules' params(SNAP_OPTIONS: params.SNAP_OPTIONS)
 include snap_paired from './modules/clomp_modules' params(SNAP_OPTIONS: params.SNAP_OPTIONS)
+include summarize_run from './modules/clomp_modules'
 include CLOMP_summary from './modules/clomp_modules' params(
     BLAST_CHECK: params.BLAST_CHECK,
     BLAST_EVAL: params.BLAST_EVAL,
@@ -396,7 +397,12 @@ workflow {
             KRAKEN_DB
         )
         summarize_run( 
-            generate_report.out
+            generate_report.out[0].groupTuple(
+            ).join(
+                generate_report.out[1].groupTuple()
+            ).join(
+                generate_report.out[2].groupTuple()
+            )
 
 
         )

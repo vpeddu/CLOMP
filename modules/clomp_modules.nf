@@ -1056,13 +1056,12 @@ process summarize_run {
     // Define the input files
     input:
       tuple val(base), file(kraken_tsv_list), file(unassigned_txt_list), file(assigned_txt_list)
-      file BLAST_CHECK_DB
-      file "kraken_db/"
     // Define the output files
     output:
       file "${base}.final_report.tsv"
       file "${base}_unassigned.txt"
       file "${base}_assigned.txt"
+      file "RPM_summary.xlsx"
     // Code to be executed inside the task
     script:
       """
@@ -1076,7 +1075,7 @@ process summarize_run {
 
 
 
-        files<-list.files(path = ${kraken_tsv_list}, pattern = '*.tsv')
+        files<-list.files(path = ".", pattern = '*.tsv')
 
         taxa_detect<-function(df, taxid){ 
         temp_rpm<-df$RPM[which(df$taxid == taxid)]
