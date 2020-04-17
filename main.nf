@@ -395,8 +395,14 @@ workflow {
             BLAST_CHECK_DB,
             KRAKEN_DB
         )
+        summarize_run( 
+            generate_report.out
+
+
+        )
     }
+    
     publish:
-        generate_report.out to: "${params.OUTDIR}"
+        summarize_run.out to: "${params.OUTDIR}"
         //filter_human_single.out[1] to: "${params.OUTDIR}/logs/"
 }
