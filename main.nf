@@ -369,7 +369,7 @@ workflow {
                 BWT_FILES
             )
             snap_single(
-                filter_human_single.out[0]..toSortedList().flatten().collate(params.SNAP_BATCHSIZE),
+                filter_human_single.out[0].toSortedList().flatten().collate(params.SNAP_BATCHSIZE),
                 SNAP_INDEXES_CH
                 
             )
