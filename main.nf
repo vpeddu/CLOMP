@@ -167,6 +167,8 @@ if (!params.OUTDIR.endsWith("/")){
 // Identify some resource files
 TRIMMOMATIC_JAR = file(params.TRIMMOMATIC_JAR_PATH)
 TRIMMOMATIC_ADAPTER = file(params.TRIMMOMATIC_ADAPTER_PATH)
+GENERATE_SUMMARY_SCRIPT = file("modules/summarize_run.r")
+
 if (params.BLAST_CHECK){
     if (!params.BLAST_CHECK_DB){ exit 1, "Must provide BLAST check database with --BLAST_CHECK_DB" }
     BLAST_CHECK_DB = file(params.BLAST_CHECK_DB)
@@ -397,17 +399,12 @@ workflow {
             KRAKEN_DB
         )
         summarize_run( 
-            generate_report.out[0].groupTuple(
-            ).join(
-                generate_report.out[1].groupTuple()
-            ).join(
-                generate_report.out[2].groupTuple()
-            )
-
-
+            generate_report.out[0].toList(), 
+                generate_report.out[1].toList(), 
+                generate_report.out[2].toList(),
+                GENERATE_SUMMARY_SCRIPT
         )
-    }
-    
+    }    
     publish:
         summarize_run.out to: "${params.OUTDIR}"
         //filter_human_single.out[1] to: "${params.OUTDIR}/logs/"
