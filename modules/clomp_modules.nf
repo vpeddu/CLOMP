@@ -78,8 +78,13 @@ set -e
 # Check for gzip-compressed input
 gzip -t ${R1} || (echo "${R1} is not gzip-compressed" && exit 1)
 
+# Checks file has at least 100k reads
+if [[ $(${R1} | wc -l) -le 40000 ]] ; then echo "${R1} contains less than 10k reads" ; exit 1 ; fi
+
 # Rename the input file
 mv ${R1} ${prefix}.R1.fastq.gz
+
+
 """
 }
 
@@ -1076,4 +1081,4 @@ process summarize_run {
       """
 
 
-}
+}e
