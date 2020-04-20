@@ -26,7 +26,7 @@ params.SAM_NO_BUILD_LIST = "[2759,77133]"
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 params.TIEBREAKING_CHUNKS = 16
-params.FASTQ_MIN_READ = 100000
+params.FASTQ_MIN_READ = 10
 
 /*
  * Define the processes used in this workflow
