@@ -7,7 +7,6 @@ params.BWT_SECOND_PASS_OPTIONS = false
 params.BWT_DB_PREFIX = false
 params.SEQUENCER = false
 params.TRIMMOMATIC_OPTIONS = false
-params.SNAP_OPTIONS = false
 params.BLAST_CHECK = false
 params.WRITE_UNIQUES = false
 params.BLAST_EVAL = false
@@ -79,7 +78,7 @@ set -e
 gzip -t ${R1} || (echo "${R1} is not gzip-compressed" && exit 1)
 
 # Checks file has at least 100k reads
-if [[ $(${R1} | wc -l) -le 40000 ]] ; then echo "${R1} contains less than 10k reads" ; exit 1 ; fi
+if [[ $(${R1} | wc -l) -le ${params.MIN_READ_CUTOFF} ]] ; then echo "${R1} contains less than ${params.MIN_READ_CUTOFF} reads" ; exit 1 ; fi
 
 # Rename the input file
 mv ${R1} ${prefix}.R1.fastq.gz
