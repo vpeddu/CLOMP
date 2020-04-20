@@ -153,7 +153,7 @@ params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 params.SNAP_BATCHSIZE = 20
 params.TIEBREAKING_CHUNKS = 2
-params.MIN_READ_CUTOFF = 100000
+
 // Check to make sure that the required parameters have been set
 if (!params.INPUT_FOLDER){ exit 1, "Must provide folder containing input files with --INPUT_FOLDER" }
 if (!params.OUTDIR){ exit 1, "Must provide output directory with --OUTDIR" }

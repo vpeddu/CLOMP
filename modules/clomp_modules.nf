@@ -7,6 +7,7 @@ params.BWT_SECOND_PASS_OPTIONS = false
 params.BWT_DB_PREFIX = false
 params.SEQUENCER = false
 params.TRIMMOMATIC_OPTIONS = false
+params.SNAP_OPTIONS = false
 params.BLAST_CHECK = false
 params.WRITE_UNIQUES = false
 params.BLAST_EVAL = false
@@ -25,7 +26,7 @@ params.SAM_NO_BUILD_LIST = "[2759,77133]"
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 params.TIEBREAKING_CHUNKS = 16
-
+params.FASTQ_MIN_READ = 100000
 
 /*
  * Define the processes used in this workflow
@@ -77,8 +78,8 @@ set -e
 # Check for gzip-compressed input
 gzip -t ${R1} || (echo "${R1} is not gzip-compressed" && exit 1)
 
-# Checks file has at least 100k reads
-if [[ $(${R1} | wc -l) -le ${params.MIN_READ_CUTOFF} ]] ; then echo "${R1} contains less than ${params.MIN_READ_CUTOFF} reads" ; exit 1 ; fi
+# check number of lines in fastq
+if [[ `zcat ${R1} | wc -l` -le ${params.FASTQ_MIN_READ} ]] ; then echo "${R1} contains less than ${params.FASTQ_MIN_READ} reads" ; exit 1 ; fi
 
 # Rename the input file
 mv ${R1} ${prefix}.R1.fastq.gz
@@ -1080,4 +1081,4 @@ process summarize_run {
       """
 
 
-}e
+}
