@@ -3,15 +3,6 @@
 
 A entirely open source, fast, accurate, multi-sample and highly configurable end to end metagenomics pipeline for the people.
 
-### Table of Contents
-1. [Introduction and general description](#Introduction)
-
-2. [Installation and configuration guide](#Installation)
-
-3. [Execution and run guide](#Test data run script)
-
-4. [Technical details and other ramblings](#Technical)
-
 # Introduction
 
 This is the publicly available source code and documentation for CLOMP - UW Virology's fully functional metagenomic pipeline. CLOMP takes raw sequence read files and taxonomically assigns as many reads as possible. We have attempted to streamline the setup for both local and cloud use as much as possible by writing the pipeline in `Nextflow`.
