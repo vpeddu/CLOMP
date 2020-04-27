@@ -8,9 +8,7 @@ A entirely open source, fast, accurate, multi-sample and highly configurable end
 
 2. [Installation and configuration guide](#Installation)
 
-3. [INI Configuration](#Configuration)
-
-3. [Execution and run guide](#Running)
+3. [Execution and run guide](#Test data run script)
 
 4. [Technical details and other ramblings](#Technical)
 
