@@ -26,7 +26,7 @@ params.SAM_NO_BUILD_LIST = "[2759,77133]"
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 params.TIEBREAKING_CHUNKS = 16
-
+params.FASTQ_MIN_READ = 10
 
 /*
  * Define the processes used in this workflow
@@ -78,8 +78,13 @@ set -e
 # Check for gzip-compressed input
 gzip -t ${R1} || (echo "${R1} is not gzip-compressed" && exit 1)
 
+# check number of lines in fastq
+if [[ `zcat ${R1} | wc -l` -le ${params.FASTQ_MIN_READ} ]] ; then echo "${R1} contains less than ${params.FASTQ_MIN_READ} reads" ; exit 1 ; fi
+
 # Rename the input file
 mv ${R1} ${prefix}.R1.fastq.gz
+
+
 """
 }
 
@@ -118,6 +123,7 @@ echo "Starting the alignment of ${r1} and ${r2}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
     --threads ${task.cpus} \
+    
     -x ${params.BWT_DB_PREFIX} \
     -q \
     -1 <(gunzip -c ${r1}) \
@@ -1042,4 +1048,38 @@ subprocess.call(kraken_report_cmd, shell = True)
 
 
 """
+}
+
+process summarize_run { 
+
+    //Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
+    // Define the Docker container used for this step
+    container "quay.io/vpeddu/rgeneratesummary:latest"
+
+    // Define the input files
+    input:
+      file kraken_tsv_list
+      file unassigned_txt_list
+      file assigned_txt_list
+      file GENERATE_SUMMARY_SCRIPT
+    // Define the output files
+    output:
+      file kraken_tsv_list
+      file unassigned_txt_list
+      file assigned_txt_list
+      file "RPM_summary.xlsx"
+    // Code to be executed inside the task
+    script:
+      """
+      #!/bin/bash
+      
+      echo ${kraken_tsv_list}
+
+      Rscript --vanilla ${GENERATE_SUMMARY_SCRIPT}
+      """
+
+
 }
