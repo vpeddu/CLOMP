@@ -1115,7 +1115,7 @@ process summarize_run {
       file kraken_tsv_list
       file unassigned_txt_list
       file assigned_txt_list
-      file "RPM_summary.xlsx"
+      file "RPM_summary.csv"
     // Code to be executed inside the task
     script:
       """
