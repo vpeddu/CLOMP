@@ -73,17 +73,4 @@
       } else{ 
           zero_removed<-final_tsv
       }
-
-      wb = createWorkbook()
-
-      sheet = createSheet(wb, "RPM < 10")
-
-      addDataFrame(zero_removed, sheet=sheet, startColumn=1, row.names=FALSE)
-
-      sheet = createSheet(wb, "All RPM values")
-
-      addDataFrame(final_tsv, sheet=sheet, startColumn=1, row.names=FALSE)
-
-
-
-      saveWorkbook(wb, "RPM_summary.xlsx")
+  write.csv(final_tsv, 'RPM_summary.csv')
