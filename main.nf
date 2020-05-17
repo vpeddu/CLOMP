@@ -418,14 +418,15 @@ workflow {
             BLAST_CHECK_DB,
             KRAKEN_DB
         )
-        summarize_run( 
-            generate_report.out[0].toList(), 
-                generate_report.out[1].toList(), 
-                generate_report.out[2].toList(),
-                GENERATE_SUMMARY_SCRIPT
-        )
+        // summarize_run( 
+        //     generate_report.out[0].toList(), 
+        //         generate_report.out[1].toList(), 
+        //         generate_report.out[2].toList(),
+        //         GENERATE_SUMMARY_SCRIPT
+        // )
     }    
     publish:
-        summarize_run.out to: "${params.OUTDIR}"
+    generate_report.out to: "${params.OUTDIR}"
+        //summarize_run.out to: "${params.OUTDIR}"
         //filter_human_single.out[1] to: "${params.OUTDIR}/logs/"
 }
