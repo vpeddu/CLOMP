@@ -1004,11 +1004,13 @@ process generate_report {
       tuple val(base), file(kraken_tsv_list), file(unassigned_txt_list), file(assigned_txt_list)
       file BLAST_CHECK_DB
       file "kraken_db/"
+      file r1
     // Define the output files
     output:
       file "${base}.final_report.tsv"
       file "${base}_unassigned.txt"
       file "${base}_assigned.txt"
+      file "*.gz"
     // Code to be executed inside the task
     script:
       """
@@ -1090,6 +1092,7 @@ output_file.close()
 final_filename = "${base}" + ".final_report.tsv"
 kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ' + temp_filename + ' > ' + final_filename
 subprocess.call(kraken_report_cmd, shell = True)
+subprocess.call(" mv *.fastq.gz ${base}.metagenome.fastq.gz")
 
 
 """
