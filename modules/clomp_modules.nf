@@ -1092,7 +1092,7 @@ output_file.close()
 final_filename = "${base}" + ".final_report.tsv"
 kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ' + temp_filename + ' > ' + final_filename
 subprocess.call(kraken_report_cmd, shell = True)
-subprocess.call("echo "FILES: " ;ls -latr",shell = True)
+subprocess.call("echo "FILES " ;ls -latr",shell = True)
 # subprocess.call(" mv ${base}.fastq.gz ${base}.metagenome.fastq.gz",shell = True)
 subprocess.call(' x=`basename -s ".fastq.gz" *.fastq.gz` ; mv *.fastq.gz \$x.metagenome.fastq.gz',shell = True)
 
