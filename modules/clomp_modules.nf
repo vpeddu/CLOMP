@@ -1010,7 +1010,7 @@ process generate_report {
       file "${base}.final_report.tsv"
       file "${base}_unassigned.txt"
       file "${base}_assigned.txt"
-      file "*.gz"
+      file "*metagenome.fastq.gz"
     // Code to be executed inside the task
     script:
       """
@@ -1092,8 +1092,10 @@ output_file.close()
 final_filename = "${base}" + ".final_report.tsv"
 kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ' + temp_filename + ' > ' + final_filename
 subprocess.call(kraken_report_cmd, shell = True)
-subprocess.call("ls -latr",shell = True)
-subprocess.call(" mv ${base}.fastq.gz ${base}.metagenome.fastq.gz",shell = True)
+subprocess.call("echo "FILES: " ;ls -latr",shell = True)
+# subprocess.call(" mv ${base}.fastq.gz ${base}.metagenome.fastq.gz",shell = True)
+subprocess.call(' x=`basename -s ".fastq.gz" *.fastq.gz` ; mv *.fastq.gz $x.metagenome.fastq.gz',shell = True)
+
 
 
 """
