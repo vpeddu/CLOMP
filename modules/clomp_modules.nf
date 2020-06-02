@@ -15,7 +15,7 @@ params.ADD_HOST_FILTERED_TO_REPORT = true
 params.HOST_FILTER_TAXID = 9606
 params.H_STRICT = false
 params.H_TAXID = 9606
-params.FILTER_LIST = "[12908,28384,48479]"
+params.FILTER_LIST = "[12908,28384,48479,99802]"
 params.LOGIC = "strict"
 params.INCLUSION_TAXID = 2759
 params.EXCLUSION_TAXID = 9604
@@ -123,6 +123,7 @@ echo "Starting the alignment of ${r1} and ${r2}"
 bowtie2 \
     ${params.BWT_SECOND_PASS_OPTIONS} \
     --threads ${task.cpus} \
+    
     -x ${params.BWT_DB_PREFIX} \
     -q \
     -1 <(gunzip -c ${r1}) \
@@ -1122,6 +1123,7 @@ process summarize_run {
       file unassigned_txt_list
       file assigned_txt_list
       file "RPM_summary.csv"
+
     // Code to be executed inside the task
     script:
       """
@@ -1134,3 +1136,4 @@ process summarize_run {
 
 
 }
+

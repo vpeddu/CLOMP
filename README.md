@@ -3,17 +3,6 @@
 
 A entirely open source, fast, accurate, multi-sample and highly configurable end to end metagenomics pipeline for the people.
 
-### Table of Contents
-1. [Introduction and general description](#Introduction)
-
-2. [Installation and configuration guide](#Installation)
-
-3. [INI Configuration](#Configuration)
-
-3. [Execution and run guide](#Running)
-
-4. [Technical details and other ramblings](#Technical)
-
 # Introduction
 
 This is the publicly available source code and documentation for CLOMP - UW Virology's fully functional metagenomic pipeline. CLOMP takes raw sequence read files and taxonomically assigns as many reads as possible. We have attempted to streamline the setup for both local and cloud use as much as possible by writing the pipeline in `Nextflow`.
@@ -41,30 +30,6 @@ This pipeline can run on any operating system capable of running `Nextflow`. How
 
 ## Installation and setup
 `CLOMP` was built with portability and modularity in mind. As such, all that is required is the latest version of `Nextflow` to run the pipeline, and `Docker` to fetch the required images. If you would like to use our databases, `AWScli` is also required to download those. Please note that If using our databases, the first run will be extremely slow as the databases are large and will require time to download. 
-
-### Installing `Nextflow`
-
-Installation instructions for `Nextflow` can be found here: https://www.nextflow.io/docs/latest/getstarted.html. It is also avaialbe via `Anaconda` using "conda install -c bioconda nextflow"
-
-### NT SNAP index build.
-
-`SNAP` requires that you be able to load the whole database into RAM. The final built database for NT is a bit less than 4TB in size. We have split NT into 14 different chunks and built an index for each of these (each of these indexes is about 198Gb once built). If you have less RAM then you'll need to make more chunks, if your RAM usage starts paging during the index build it probably won't finish. Our databases are downloadable here: <database link>. 
-
-##### Building a new NT database: 
-
-First you need to download NCBI's NT database (ftp://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/). The required file ends ends with "nt.gz".
-
-[Pyfasta](https://pypi.org/project/pyfasta/) can be used to split the NT file into the required number of chunks. 14 chunks load into RAM at about 200GB each but take about 220Gb each to build (Building the index takes more RAM than aligning to it). On our server, each raw chunk of NT takes up 14Gb of size on my computer. So if you assume that you need about (size of fasta file X 15) of RAM in order to build the database you can figure out how many pieces you need to be able to fit the database into RAM. 
-
-Next you need to build the NT `SNAP` index. I've included parse_nt.py to allow you to do this, what this does is remove sequences less than 500nt from the database as well as append the NCBI taxid to the header of each sequence. I also curate a list of 'bad' accession numbers and prune these out. This script requires that you have a locally downloaded copy of NCBI's taxonomy (ftp://ftp.ncbi.nih.gov/pub/taxonomy/accession2taxid). (You want the file called `nucl_gb.accession2taxid.gz`). My code works on fasta files that have already been split and are named like nt.fna.00 ect. You just need to make sure that nucl_gb.accesion2taxid is in the same folder as your nt files and parse_nt.py. Then run `python parse_nt.py` At this point if are short on disk space you can delete the nt.gz, nt.fna as well as the unprocessed chunks.
-
-The other constraint for building the database is going to be the size on your hard drive. Currently all of NT takes around 2.5TB of hard drive space and the more chunks you make the more HD space you need. Use the command `snap index nt.00 nt.00.snapindex -t <threads>` If snap prompts you to increase the location size than do so with `snap index nt.00 nt.00.snapindex -t <threads> -locationSize 5` and hope that the index build finishes. The local location of folders containing the databases chunks must be specified in a comma separated list using the flag `--SNAP_INDEXES`
-
-### Tiebreaking options
-
-SNAP will potentially report multiple alignments for each read for each database. There are several different flavors of tiebreaking included with CLOMP and which one you use can be set with `--LOGIC` flag. The default method `strict` is optimized to reduce species level misclassifications, at the cost of underspeciating reads. Essentially we will only speciate reads which appear to be unambiguous. The basic tiebreaking logic is as follows.
-
-1. SNAP is run with an edit distance of 9 and accepts alignments that are, at worst, one away from the best alignment.
 
 2. Each SNAP database has a different composition we go through all assignments and throw out any that are more than 6 edit distance away from the best hit. This essentially just throws out the case where we get one pretty tenuous hit in one database, this is much more common for less heavily sequenced organisims. 
 
