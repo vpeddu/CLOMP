@@ -320,6 +320,7 @@ process bbMask_Single {
     // Define the input files
     input:
       file r1
+      file TRIMMOMATIC_ADAPTER 
 
     // Define the output files
     output:
@@ -345,14 +346,59 @@ mv ${r1} INPUT.${r1}
 echo "Masking ${r1}"
 bbduk.sh \
     in=INPUT.${r1} \
-    out=${r1} \
+    out=${r1}.trimmed.fastq.gz \
     entropy=0.7 \
     entropywindow=50 \
-    entropyk=4
+    entropyk=4 \
+    ref=${TRIMMOMATIC_ADAPTER} \
+    ${params.BBDUK_TRIM_OPTIONS}
+    
+
+    mv ${r1}.trimmed.fastq.gz ${r1}
+
 """
 }
 
+process deduplicate { 
 
+    // Retry at most 3 times
+    errorStrategy 'retry'
+    maxRetries 3
+    
+    // Define the Docker container used for this step
+    // should build our own docker image for this 
+    container "quay.io/biocontainers/bbmap:38.76--h516909a_0"
+
+    // Define the input files
+    input:
+      file r1
+
+    // Define the output files
+    output:
+      file("${r1}")
+
+    // Code to be executed inside the task
+    script:
+      """
+      #!/bin/bash
+
+      set -e
+
+      # For logging and debugging, list all of the files in the working directory
+      ls -lahtr
+
+      # Get the sample name from the file name
+      sample_name=\$(echo ${r1} | sed 's/.R1.fastq.gz//')
+      echo "Processing \$sample_name"
+
+      dedupe2.sh in=${r1} out=${r1}.deduped.fastq.gz
+
+      mv ${r1}.deduped.fastq.gz ${r1}
+      
+      """
+
+
+}
 process snap_paired {
 
     // Retry at most 3 times
@@ -959,11 +1005,13 @@ process generate_report {
       tuple val(base), file(kraken_tsv_list), file(unassigned_txt_list), file(assigned_txt_list)
       file BLAST_CHECK_DB
       file "kraken_db/"
+      file r1
     // Define the output files
     output:
       file "${base}.final_report.tsv"
       file "${base}_unassigned.txt"
       file "${base}_assigned.txt"
+      file "*metagenome.fastq.gz"
     // Code to be executed inside the task
     script:
       """
@@ -1043,8 +1091,12 @@ with open(temp_filename,'w') as output_file:
 output_file.close() 
 
 final_filename = "${base}" + ".final_report.tsv"
-kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts ' + temp_filename + ' > ' + final_filename
+kraken_report_cmd = '/usr/local/miniconda/bin/krakenuniq-report --db kraken_db --taxon-counts --show-zeros ' + temp_filename + ' > ' + final_filename
 subprocess.call(kraken_report_cmd, shell = True)
+subprocess.call("echo FILES  ;ls -latr",shell = True)
+# subprocess.call(" mv ${base}.fastq.gz ${base}.metagenome.fastq.gz",shell = True)
+subprocess.call(' x=`basename -s ".fastq.gz" *.fastq.gz` ; mv *.fastq.gz \$x.metagenome.fastq.gz',shell = True)
+
 
 
 """
@@ -1070,7 +1122,8 @@ process summarize_run {
       file kraken_tsv_list
       file unassigned_txt_list
       file assigned_txt_list
-      file "RPM_summary.xlsx"
+      file "RPM_summary.csv"
+
     // Code to be executed inside the task
     script:
       """
@@ -1083,3 +1136,4 @@ process summarize_run {
 
 
 }
+

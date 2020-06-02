@@ -51,6 +51,8 @@ def helpMessage() {
                 Should we do a more sensitive second pass of host filtering? (default: false)
       --TRIMMOMATIC_OPTIONS
                 Options used to run Trimmomatic (default: ':2:30:10 HEADCROP:10 SLIDINGWINDOW:4:20 CROP:65 MINLEN:65')
+      --BBDUK_TRIM_OPTIONS
+                Options to be used to run BBDuk trimming (defaults: 'ktrim=r k=27 hdist=1 edist=0 mink=4 qtrim=rl trimq=6 minlength=65 ordered=t qin=33')
       --TRIMMOMATIC_JAR_PATH
                 Path to Trimmomatic executable (default: "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/trimmomatic-0.38.jar")
       --TRIMMOMATIC_ADAPTER_PATH
@@ -126,6 +128,7 @@ params.SNAP_OPTIONS = "-mrl 65 -d 9 -h 30000 -om 1 -omax 20"
 params.HOST_FILTER_FIRST = false
 params.SECOND_PASS = false
 params.TRIMMOMATIC_OPTIONS = ':2:30:10 HEADCROP:10 SLIDINGWINDOW:4:20 CROP:65 MINLEN:65'
+params.BBDUK_TRIM_OPTIONS = 'ktrim=r k=27 hdist=1 edist=0 mink=4 qtrim=rl trimq=6 minlength=65 ordered=t qin=33'
 params.TRIMMOMATIC_JAR_PATH = "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/trimmomatic-0.38.jar"
 params.TRIMMOMATIC_ADAPTER_PATH = "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/adapters.fa"
 params.SEQUENCER = 'ILLUMINACLIP:'
@@ -134,6 +137,7 @@ params.BWT_DB_LOCATION = "s3://fh-ctr-public-reference-data/tool_specific_data/C
 params.BWT_SECOND_PASS_OPTIONS = '-D 35 -R 5 -N 1 -L 19 -i S,1,0.50'
 params.BLAST_EVAL = 0.001
 params.BLAST_CHECK = false
+params.DEDUPE = true
 params.BLAST_CHECK_DB = false
 params.FILTER_LIST = "[12908,28384,48479]"
 params.KRAKEN_DB_PATH = "s3://fh-ctr-public-reference-data/tool_specific_data/CLOMP/kraken_db/"
@@ -152,7 +156,7 @@ params.WRITE_UNIQUES = true
 params.EDIT_DISTANCE_OFFSET = 6
 params.BUILD_SAMS = false
 params.SNAP_BATCHSIZE = 20
-params.TIEBREAKING_CHUNKS = 16
+params.TIEBREAKING_CHUNKS = 2
 
 // Check to make sure that the required parameters have been set
 if (!params.INPUT_FOLDER){ exit 1, "Must provide folder containing input files with --INPUT_FOLDER" }
@@ -167,6 +171,8 @@ if (!params.OUTDIR.endsWith("/")){
 // Identify some resource files
 TRIMMOMATIC_JAR = file(params.TRIMMOMATIC_JAR_PATH)
 TRIMMOMATIC_ADAPTER = file(params.TRIMMOMATIC_ADAPTER_PATH)
+GENERATE_SUMMARY_SCRIPT = file("modules/summarize_run.r")
+
 if (params.BLAST_CHECK){
     if (!params.BLAST_CHECK_DB){ exit 1, "Must provide BLAST check database with --BLAST_CHECK_DB" }
     BLAST_CHECK_DB = file(params.BLAST_CHECK_DB)
@@ -211,9 +217,11 @@ include filter_human_paired as filter_human_paired_second_pass from './modules/c
     BWT_SECOND_PASS_OPTIONS: params.BWT_SECOND_PASS_OPTIONS, 
     BWT_DB_PREFIX: params.BWT_DB_PREFIX
 )
-include bbMask_Single from './modules/clomp_modules'
+include bbMask_Single from './modules/clomp_modules' params(BBDUK_TRIM_OPTIONS: params.BBDUK_TRIM_OPTIONS)
+include deduplicate from './modules/clomp_modules'
 include snap_single from './modules/clomp_modules' params(SNAP_OPTIONS: params.SNAP_OPTIONS)
 include snap_paired from './modules/clomp_modules' params(SNAP_OPTIONS: params.SNAP_OPTIONS)
+include summarize_run from './modules/clomp_modules'
 include CLOMP_summary from './modules/clomp_modules' params(
     BLAST_CHECK: params.BLAST_CHECK,
     BLAST_EVAL: params.BLAST_EVAL,
@@ -356,18 +364,33 @@ workflow {
                 )
             }
         } else {
-            trimmomatic_single(
-                validate_single.out,
-                TRIMMOMATIC_JAR,
-                TRIMMOMATIC_ADAPTER
-            )
+            //Trimmomatic depracated. Using BBDuk for quality filtering, adapter trimming, and entropy filtering 
+
+            //trimmomatic_single(
+            //   validate_single.out,
+            //   TRIMMOMATIC_JAR,
+            //   TRIMMOMATIC_ADAPTER
+            //)
             bbMask_Single(
-                trimmomatic_single.out
-            )
+                validate_single.out,
+                TRIMMOMATIC_ADAPTER
+                )
+            if ( params.DEDUPE){ 
+            deduplicate(
+                bbMask_Single.out
+                )
+            filter_human_single(
+                deduplicate.out,
+                BWT_FILES
+                )
+            }
+            else { 
             filter_human_single(
                 bbMask_Single.out,
                 BWT_FILES
             )
+
+            }
             snap_single(
                 filter_human_single.out[0].toSortedList().flatten().collate(params.SNAP_BATCHSIZE),
                 SNAP_INDEXES_CH
@@ -394,10 +417,18 @@ workflow {
                 CLOMP_summary.out[2].groupTuple()
             ),
             BLAST_CHECK_DB,
-            KRAKEN_DB
+            KRAKEN_DB,
+            deduplicate.out
         )
-    }
+        // summarize_run( 
+        //     generate_report.out[0].toList(), 
+        //         generate_report.out[1].toList(), 
+        //         generate_report.out[2].toList(),
+        //         GENERATE_SUMMARY_SCRIPT
+        // )
+    }    
     publish:
-        generate_report.out to: "${params.OUTDIR}"
+    generate_report.out to: "${params.OUTDIR}"
+        //summarize_run.out to: "${params.OUTDIR}"
         //filter_human_single.out[1] to: "${params.OUTDIR}/logs/"
 }
